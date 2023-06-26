@@ -1,0 +1,36 @@
+.myBg {
+    position: fixed;
+    opacity: 0.05;
+    width: 211%;
+    height: 100%;
+    left: -54%;
+    top: -5%;
+}
+.circle1 {
+    position: fixed;
+    width: 235%;
+    height: 113.5%;
+    top: -35%;
+    left: -15.5%;
+    background-image: linear-gradient(to top,  #1D3E53, #254B62);
+    border-radius: 50%;
+}
+.circle2 {
+    position: fixed;
+    width: 260%;
+    height: 124%;
+    top: -30%;
+    left: -6.4%;
+    background-image: linear-gradient(to top,  #1D3E53, #254B62);
+    border-radius: 50%;
+    opacity: 0.8;
+}
+
+.logo {
+    width: 160px;
+    height: 160px;
+}
+
+.form-control {
+    opacity: 0.6;
+}

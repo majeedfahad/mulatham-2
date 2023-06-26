@@ -1,0 +1,19 @@
+.text-right {
+    text-align: initial;
+}
+.text-center {
+    text-align: center;
+}
+.alert.alert-warning.waiting-members {
+    text-align: center;
+}
+
+.disabled {
+    display: none;
+}
+
+.text-center .question {
+    border-radius: 10px;
+    padding: 15px 20px;
+    background-color: #87a9be;
+}
