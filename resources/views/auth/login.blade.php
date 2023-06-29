@@ -18,7 +18,8 @@
                     <label for="name" class="d-flex  text-white">الاسم الثنائي</label>
                     <input id="name" type="text"
                         class="border rounded border-info shadow form-control @error('name') is-invalid @enderror"
-                        name="name" value="{{ old('name') }}" required autocomplete="off" autofocus>
+                        name="name" value="{{ old('name') }}" required autocomplete="off" autofocus
+                           data-toggle="tooltip" data-placement="top" title="نفس اللي سجلت به في موقع النماص">
 
                     @error('name')
                         <span class="invalid-feedback text-right" role="alert">
