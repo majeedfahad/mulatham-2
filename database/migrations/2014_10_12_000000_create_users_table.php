@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique();
-            $table->string('fakename')->unique();
+            $table->string('fakename')->unique()->nullable();
             $table->string('password');
             $table->double('score')->default(0);
             $table->double('hidden_score')->nullable();

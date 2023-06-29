@@ -21,6 +21,9 @@ Route::get('/', function () {
 
 Auth::routes();
 
+Route::get('fakename', [\App\Http\Controllers\FakenameController::class, 'create'])->name('fakename.create');
+Route::post('fakename', [\App\Http\Controllers\FakenameController::class, 'store'])->name('fakename.store');
+
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 Route::get('/question/{id}', [App\Http\Controllers\HomeController::class, 'question'])->name('question');
 Route::post('answerQuestion/{id}', [App\Http\Controllers\HomeController::class, 'answerQuestion'])->name('answerQuestion');

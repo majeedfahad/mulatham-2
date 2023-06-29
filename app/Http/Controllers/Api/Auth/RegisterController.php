@@ -1,26 +1,28 @@
 <?php
 
-namespace App\Http\Controllers\Auth;
+namespace App\Http\Controllers\Api\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Providers\RouteServiceProvider;
 use App\Models\User;
+use App\Providers\RouteServiceProvider;
 use Illuminate\Foundation\Auth\RegistersUsers;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 
 class RegisterController extends Controller
 {
     /*
-    |--------------------------------------------------------------------------
-    | Register Controller
-    |--------------------------------------------------------------------------
-    |
-    | This controller handles the registration of new users as well as their
-    | validation and creation. By default this controller uses a trait to
-    | provide this functionality without requiring any additional code.
-    |
-    */
+|--------------------------------------------------------------------------
+| Register Controller
+|--------------------------------------------------------------------------
+|
+| This controller handles the registration of new users as well as their
+| validation and creation. By default this controller uses a trait to
+| provide this functionality without requiring any additional code.
+|
+*/
 
     use RegistersUsers;
 
@@ -51,7 +53,7 @@ class RegisterController extends Controller
     {
         return Validator::make($data, [
             'name' => ['required', 'string', 'max:255', 'unique:users'],
-            'fakename' => ['required', 'string', 'max:255', 'unique:users'],
+            'fakename' => ['string', 'max:255', 'unique:users'],
             'password' => ['required', 'string'],
         ], [
             'name.unique' => 'الاسم مستخدم مسبقًا',
@@ -69,9 +71,21 @@ class RegisterController extends Controller
     {
         return User::create([
             'name' => $data['name'],
-            'fakename' => $data['fakename'],
+            'fakename' => $data['fakename'] ?? null,
             'password' => Hash::make($data['password']),
             'order' => rand(1, 200),
         ]);
+    }
+
+    public function register(Request $request)
+    {
+        $validator = $this->validator($request->all());
+        if ($validator->fails())
+        {
+            return response()->json(['errors'=>$validator->errors()], 422);
+        }
+        $user = $this->create($request->all());
+
+        return response()->json(['message' => 'User Created'], Response::HTTP_CREATED);
     }
 }
