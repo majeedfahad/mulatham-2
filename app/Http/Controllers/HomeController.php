@@ -32,7 +32,7 @@ class HomeController extends Controller
         $question = Question::where('status', 1)->first();
         $listOfUsers = User::query()->competitors();
         $users = $listOfUsers->active()->get();
-        $activeUsers = $listOfUsers->active()->orderBy('score', 'desc')->get();
+        $activeUsers = $listOfUsers->active()->orderBy('score', 'desc')->orderBy('order', 'asc')->get();
         $eliminatedUsers = User::query()->eliminated()->get();
         $winners = User::getWinners();
         return view('home', compact('users','activeUsers', 'eliminatedUsers', 'question', 'winners'));
