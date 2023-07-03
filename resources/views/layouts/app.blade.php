@@ -44,6 +44,8 @@
                             class="btn btn-sm btn-outline-info"
                             onclick="event.preventDefault();
                                         document.getElementById('logout-form').submit();">تسجيل الخروج</a>
+                            <a href="https://alnamas.fun"
+                            class="btn btn-sm btn-outline-info">موقع النماص</a>
 
                             <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
                                 @csrf
