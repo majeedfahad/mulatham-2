@@ -70,4 +70,11 @@ class HomeController extends Controller
             }
         }
     }
+
+    public function users()
+    {
+        $users = User::all();
+
+        return view('users-list', compact('users'));
+    }
 }

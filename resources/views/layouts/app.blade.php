@@ -32,26 +32,53 @@
         @auth
         <nav class="navbar navbar-expand-md navbar-light shadow-sm">
             <div class="container">
-                <a class="navbar-brand text-white" href="#" onclick="event.preventDefault()" class="">
+                <div class="navbar-brand text-white">
 
                         @if (Auth::user()->isAdmin())
-                            هلا بالمدير
-                            <a href="{{route('settings.index')}}" class="btn btn-sm btn-outline-info">الإعدادات</a>
-                            <a href="{{route('home')}}" class="btn btn-sm btn-outline-info">الرئيسية</a>
-                        @else
-                            أهلًا {{Auth::user()->name}}
-                            <a href="{{ route('logout') }}"
-                            class="btn btn-sm btn-outline-info"
-                            onclick="event.preventDefault();
-                                        document.getElementById('logout-form').submit();">تسجيل الخروج</a>
-                            <a href="https://alnamas.fun"
-                            class="btn btn-sm btn-outline-info">موقع النماص</a>
+                            <div class="row">
+                                هلا بالمدير
+                            </div>
+                            <div class="row">
+                                <div class="col-4">
+                                    <a href="{{route('settings.index')}}" class="btn btn-sm btn-outline-info">الإعدادات</a>
+                                </div>
+                                <div class="col-4">
+                                    <a href="{{route('home')}}" class="btn btn-sm btn-outline-info">الرئيسية</a>
+                                </div>
+                                <div class="col-4">
+                                    <a href="https://alnamas.fun" class="btn btn-sm btn-outline-info">موقع النماص</a>
+                                </div>
+                            </div>
 
-                            <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
-                                @csrf
-                            </form>
+                        @else
+                            <div class="row">
+                                أهلًا {{Auth::user()->name}}
+                            </div>
+                            <div class="row">
+                                <div class="col-4 pr-0">
+                                    <a href="{{ route('logout') }}"
+                                       class="btn btn-sm btn-outline-info"
+                                       onclick="event.preventDefault();
+                                            document.getElementById('logout-form').submit();">تسجيل الخروج</a>
+                                </div>
+                                <div class="col-4 pr-0">
+                                    <a href="https://alnamas.fun" class="btn btn-sm btn-outline-info">موقع النماص</a>
+                                </div>
+                                <div class="col-4 pr-0">
+                                    @if(Route::currentRouteName() == 'home')
+                                        <a href="{{route('users')}}" class="btn btn-sm btn-outline-info">قائمة المشاركين</a>
+                                    @else
+                                        <a href="{{route('home')}}" class="btn btn-sm btn-outline-info">الرئيسية</a>
+                                    @endif
+                                </div>
+
+                                <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
+                                    @csrf
+                                </form>
+
+                            </div>
                         @endif
-                    </a>
+                    </div>
                 </div>
             </nav>
             @endauth
