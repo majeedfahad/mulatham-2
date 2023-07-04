@@ -73,7 +73,7 @@ class HomeController extends Controller
 
     public function users()
     {
-        $users = User::all();
+        $users = User::query()->where('role', '<>', 1)->get();
 
         return view('users-list', compact('users'));
     }
