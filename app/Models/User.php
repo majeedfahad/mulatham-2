@@ -124,4 +124,17 @@ class User extends Authenticatable
 
         return $winners->values()->all();
     }
+
+    public function refreshScore()
+    {
+        $finalScore = $this->answers->map->score->sum();
+        $finalScore += Elimination::where('status', 'FAILED')
+            ->where('target_id', $this->id)
+            ->get()->map->points->sum();
+
+        $this->update(['score' => $finalScore]);
+        $this->refresh();
+
+        return $this->score;
+    }
 }
