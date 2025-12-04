@@ -121,8 +121,8 @@
             <div class="col-12 offset-1 align-self-center p-2 rounded rounded-lg-0 mt-3 ml-0">
                 <h2 class="d-flex d-sm-flex justify-content-center text-info font-weight-light mb-2"><img
                         class="d-flex justify-content-sm-center" src="{{asset('imgs/logo-desert.svg')}}" style="height: 200px;"></h2>
-                <h2 class="text-center text-white">يالله حيه! ننتظر طويل العمر يبدأ المسابقة</h2>
-                <p class="text-center text-white">بالمناسبة ترتيب المتسابقين اللي بيطلع لك عشوائي، خد بالك وماتفضحش نفسك ;)</p>
+                <h2 class="text-center text-dark font-weight-bold">يالله حيه! ننتظر طويل العمر يبدأ المسابقة</h2>
+                <p class="text-center text-dark font-weight-bold">بالمناسبة ترتيب المتسابقين اللي بيطلع لك عشوائي، خد بالك وماتفضحش نفسك ;)</p>
             </div>
         @endif
     </div>
