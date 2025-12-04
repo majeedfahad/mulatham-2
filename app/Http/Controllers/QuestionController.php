@@ -41,8 +41,14 @@ class QuestionController extends Controller
     public function store(Request $request)
     {
         try {
+            $imagePath = null;
+            if ($request->hasFile('question_image')) {
+                $imagePath = $request->file('question_image')->store('questions', 'public');
+            }
+
             $question = Question::create([
                 'title' => $request['question'],
+                'image_path' => $imagePath,
                 'score' => $request['score'],
                 'type' => $request['answer_option'],
                 'status' => 0

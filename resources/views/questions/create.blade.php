@@ -35,6 +35,31 @@
                                     <textarea name="question" class="form-control form-control-lg rounded-3" rows="4" placeholder="مثال: ما هي عاصمة المملكة العربية السعودية؟" required></textarea>
                                 </div>
 
+                                <div class="col-md-12">
+                                    <label class="section-label d-flex align-items-center mb-2">
+                                        <span class="badge step-badge">1.1</span>
+                                        <span class="label-text">أرفق صورة (اختياري)</span>
+                                    </label>
+                                    <div class="upload-tile">
+                                        <div class="d-flex align-items-center justify-content-between flex-wrap">
+                                            <div class="d-flex align-items-center gap-2 mb-2 mb-md-0">
+                                                <div class="upload-icon"><i class="bi bi-image"></i></div>
+                                                <div>
+                                                    <div class="fw-semibold">صورة توضيحية للسؤال</div>
+                                                    <div class="text-muted small">يدعم PNG, JPG حتى 3MB</div>
+                                                </div>
+                                            </div>
+                                            <label class="btn btn-outline-primary btn-sm mb-0">
+                                                اختيار ملف
+                                                <input type="file" name="question_image" id="question_image" accept="image/*" class="d-none" onchange="previewQuestionImage(this)">
+                                            </label>
+                                        </div>
+                                        <div class="preview mt-3" id="question-image-preview" style="display: none;">
+                                            <img src="" alt="معاينة صورة السؤال" class="img-fluid rounded-3 border">
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div class="col-md-6">
                                     <label class="section-label d-flex align-items-center mb-2">
                                         <span class="badge step-badge">2</span>
@@ -120,6 +145,19 @@
                     $('#choices-div').addClass('disabled');
                 }
             }
+            function previewQuestionImage(input) {
+                var preview = document.getElementById('question-image-preview');
+                var img = preview ? preview.querySelector('img') : null;
+                if (!input.files || !input.files[0] || !preview || !img) {
+                    return;
+                }
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    img.src = e.target.result;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
             document.addEventListener('DOMContentLoaded', function () {
                 var selector = document.getElementById('answer_option');
                 if (selector) {
@@ -199,6 +237,23 @@
                 box-shadow: 0 8px 18px rgba(13, 110, 253, 0.08);
                 transform: translateY(-2px);
             }
+            .upload-tile {
+                border: 1px dashed #c6d6f3;
+                border-radius: 14px;
+                padding: 16px;
+                background: #f9fbff;
+            }
+            .upload-icon {
+                width: 40px;
+                height: 40px;
+                border-radius: 10px;
+                background: #e8f1ff;
+                color: #0d6efd;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 700;
+            }
             .input-group .form-select,
             .input-group .form-control {
                 border-top-left-radius: 0;
@@ -250,6 +305,7 @@
             .bi-ui-checks-grid::before { content: "☑"; }
             .bi-stars::before { content: "★"; }
             .bi-shield-check::before { content: "🛡"; }
+            .bi-image::before { content: "🖼"; }
         </style>
     @endpush
 @endsection

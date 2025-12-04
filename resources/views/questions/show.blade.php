@@ -30,6 +30,21 @@
                                 </tr>
                             </thead>
                             <tbody>
+                                <tr>
+                                    <td colspan="4">
+                                        <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between mb-3">
+                                            <div>
+                                                <div class="text-muted small mb-1">نص السؤال</div>
+                                                <h5 class="mb-0">{!! nl2br(e($question->title)) !!}</h5>
+                                            </div>
+                                            @if($question->image_path)
+                                                <div class="mt-3 mt-md-0">
+                                                    <img src="{{ asset('storage/'.$question->image_path) }}" alt="صورة السؤال" class="img-fluid rounded" style="max-height: 180px;">
+                                                </div>
+                                            @endif
+                                        </div>
+                                    </td>
+                                </tr>
                                 @foreach ($question->answersUser as $answer)
                                     <tr>
                                         <td>{{$answer->id}}</td>

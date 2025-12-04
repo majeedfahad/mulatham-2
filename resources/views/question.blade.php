@@ -21,6 +21,11 @@
                 <div class="text-center">
                     <h3 class="question">{!! nl2br(e($question->title)) !!}</h3>
                 </div>
+                @if ($question->image_path)
+                    <div class="text-center mt-3">
+                        <img src="{{ asset('storage/'.$question->image_path) }}" alt="صورة السؤال" class="img-fluid rounded shadow-sm" style="max-height: 280px;">
+                    </div>
+                @endif
 
                 @if ($question->isText())
                 <div class="form-group">

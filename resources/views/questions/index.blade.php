@@ -27,6 +27,7 @@
                             <thead>
                                 <tr>
                                     <th scope="col">#</th>
+                                    <th scope="col">الصورة</th>
                                     <th scope="col">السؤال</th>
                                     <th scope="col"></th>
                                     <th scope="col"></th>
@@ -36,6 +37,13 @@
                                 @foreach ($questions as $question)
                                     <tr>
                                         <td>{{$question->id}}</td>
+                                        <td style="width: 120px;">
+                                            @if($question->image_path)
+                                                <img src="{{ asset('storage/'.$question->image_path) }}" alt="صورة السؤال" class="img-fluid rounded" style="max-height: 80px;">
+                                            @else
+                                                <span class="text-muted small">لا توجد صورة</span>
+                                            @endif
+                                        </td>
                                         <td><a href="{{route('settings.questions.show', ['id' => $question->id])}}" style="{{$question->type == 2 ? 'color: black' : ''}}" onclick="{{$question->type == 2 ? 'event.preventDefault()' : ''}}">{!! nl2br(e($question->title)) !!}</a></td>
 
                                         @if($question->isActive())
