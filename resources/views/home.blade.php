@@ -13,18 +13,18 @@
             <div class="col-12 p-0 rounded rounded-lg-0 my-2" id="myTable">
                 @include('new-question')
                 <div id="table_header" class="row text-center d-flex align-content-center" dir="rtl">
-                    <div class="col-7">الفارس</div>
+                    <div class="col-6">الفارس</div>
                     <div class="col-2">النقاط</div>
                     @if (Auth::user()->isAdmin())
-                        <div class="col-3">اقصاء</div>
+                        <div class="col-4">اقصاء</div>
                     @endif
                 </div>
 
                 <!-- لوب هنا يا وحش -->
                 @foreach ($activeUsers as $user)
                     <div id="table_row" class="row text-center d-flex align-content-center" dir="rtl">
-                        <div class="col-7">{{$user->fakename}}</div>
-                        <div class="col-1">{{$user->score}}</div>
+                        <div class="col-6">{{$user->fakename}}</div>
+                        <div class="col-2">{{$user->score}}</div>
                         @if (Auth::user()->isAdmin())
                             <div class="col-4">
                                 <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
@@ -37,8 +37,8 @@
                 @endforeach
                 @foreach ($eliminatedUsers as $user)
                     <div id="table_row" class="row text-center d-flex align-content-center text-white" dir="rtl" style="background-color: #900808">
-                        <div class="col-7">{{$user->fakename}}</div>
-                        <div class="col-1">{{$user->getTotalScore()}}</div>
+                        <div class="col-6">{{$user->fakename}}</div>
+                        <div class="col-2">{{$user->getTotalScore()}}</div>
                         <div class="col-4">{{$user->name}}</div>
                     </div>
                 @endforeach
