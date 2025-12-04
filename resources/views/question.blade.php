@@ -7,7 +7,7 @@
         @push('background')
             <div class="circle2"></div>
             <div class="circle1"></div>
-            <img src="{{asset('imgs/logo.png')}}" class="myBg">
+            <img src="{{asset('imgs/logo-desert.svg')}}" class="myBg">
         @endpush
 
         <div class="col-12 offset-1 align-self-center p-2 rounded rounded-lg-0 mt-5 ml-0">

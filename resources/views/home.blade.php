@@ -7,7 +7,7 @@
         @push('background')
             <div class="circle2"></div>
             <div class="circle1"></div>
-            <img src="imgs/logo.png" class="myBg">
+            <img src="imgs/logo-desert.svg" class="myBg">
         @endpush
         @if (\App\Models\Setting::isCompetetionStart())
             <div class="col-12 p-0 rounded rounded-lg-0 my-2" id="myTable">
@@ -106,7 +106,7 @@
         @elseif(\App\Models\Setting::isCompetetionEnd())
             <div class="col-12 offset-1 align-self-center p-2 rounded rounded-lg-0 mt-3 ml-0">
                 <h2 class="d-flex d-sm-flex justify-content-center text-info font-weight-light mb-2"><img
-                        class="d-flex justify-content-sm-center" src="{{asset('imgs/logo.png')}}" style="height: 200px;"></h2>
+                        class="d-flex justify-content-sm-center" src="{{asset('imgs/logo-desert.svg')}}" style="height: 200px;"></h2>
                 <h2 class="text-center text-white">شكرًا لتفاعلكم!</h2>
                 <h2 class="text-center text-white">ونحيي الفائزين:</h2>
                 @foreach ($winners as $winner)
@@ -120,7 +120,7 @@
         @else
             <div class="col-12 offset-1 align-self-center p-2 rounded rounded-lg-0 mt-3 ml-0">
                 <h2 class="d-flex d-sm-flex justify-content-center text-info font-weight-light mb-2"><img
-                        class="d-flex justify-content-sm-center" src="{{asset('imgs/logo.png')}}" style="height: 200px;"></h2>
+                        class="d-flex justify-content-sm-center" src="{{asset('imgs/logo-desert.svg')}}" style="height: 200px;"></h2>
                 <h2 class="text-center text-white">يالله حيه! ننتظر طويل العمر يبدأ المسابقة</h2>
                 <p class="text-center text-white">بالمناسبة ترتيب المتسابقين اللي بيطلع لك عشوائي، خد بالك وماتفضحش نفسك ;)</p>
             </div>

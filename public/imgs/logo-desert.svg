@@ -1,0 +1,28 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="سفرة حايل">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f5f1e9"/>
+      <stop offset="100%" stop-color="#f0e5d7"/>
+    </linearGradient>
+    <linearGradient id="sand" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e9d7b8"/>
+      <stop offset="100%" stop-color="#d8c2a2"/>
+    </linearGradient>
+  </defs>
+  <circle cx="256" cy="256" r="230" fill="url(#sky)" stroke="#5a4737" stroke-width="16"/>
+  <path d="M70 310 Q110 285 150 298 T230 300 T310 285 T380 295 T450 280 L450 340 L70 340 Z" fill="url(#sand)"/>
+  <path d="M115 292 C150 270 180 266 220 274 L300 274 L335 270 L380 280 L388 320 L124 320 Z" fill="#fdfbf7" stroke="#5a4737" stroke-width="6" stroke-linejoin="round"/>
+  <rect x="180" y="246" width="72" height="36" rx="6" fill="#fdfbf7" stroke="#5a4737" stroke-width="6"/>
+  <rect x="252" y="246" width="110" height="54" rx="6" fill="#d8c2a2" stroke="#5a4737" stroke-width="6"/>
+  <rect x="282" y="238" width="16" height="64" fill="#fdfbf7" stroke="#5a4737" stroke-width="6"/>
+  <path d="M162 294 L174 246 L240 246 L240 294 Z" fill="#fdfbf7" stroke="#5a4737" stroke-width="6" stroke-linejoin="round"/>
+  <circle cx="170" cy="328" r="34" fill="#d3cec7" stroke="#5a4737" stroke-width="8"/>
+  <circle cx="170" cy="328" r="16" fill="#5a4737"/>
+  <circle cx="346" cy="328" r="34" fill="#d3cec7" stroke="#5a4737" stroke-width="8"/>
+  <circle cx="346" cy="328" r="16" fill="#5a4737"/>
+  <rect x="154" y="238" width="22" height="18" rx="4" fill="#5a4737"/>
+  <path d="M256 278 L256 298" stroke="#5a4737" stroke-width="6"/>
+  <path d="M106 308 L110 320" stroke="#5a4737" stroke-width="6" stroke-linecap="round"/>
+  <text x="256" y="195" text-anchor="middle" fill="#5a4737" font-family="Cairo, 'Noto Kufi Arabic', sans-serif" font-size="60" font-weight="700">سفرة حايل</text>
+  <text x="256" y="390" text-anchor="middle" fill="#5a4737" font-family="Cairo, 'Noto Kufi Arabic', sans-serif" font-size="42" font-weight="700">هـ ١٤٤٧</text>
+</svg>
