@@ -16,7 +16,7 @@
             <form name="login" method="POST" action="{{ route('register') }}" dir="rtl">
                 @csrf
                 <div class="form-group">
-                    <label for="name" class="d-flex  text-white">الاسم الثنائي</label>
+                    <label for="name" class="d-flex text-dark font-weight-bold">الاسم الثنائي</label>
                     <input id="name" type="text"
                         class="border rounded border-info shadow form-control @error('name') is-invalid @enderror"
                         name="name" value="{{ old('name') }}" data-toggle="tooltip" data-placement="top"
@@ -29,7 +29,7 @@
                     @enderror
                 </div>
                 <div class="form-group">
-                    <label for="fakename" class="d-flex  text-white">اللقب</label>
+                    <label for="fakename" class="d-flex text-dark font-weight-bold">اللقب</label>
                     <input id="fakename" type="text"
                         class="border rounded border-info shadow form-control @error('fakename') is-invalid @enderror"
                         name="fakename" value="{{ old('fakename') }}" required autocomplete="off" autofocus
@@ -42,7 +42,7 @@
                     @enderror
                 </div>
                 <div class="form-group">
-                    <label for="password" class="d-flex  text-white">كلمة المرور</label>
+                    <label for="password" class="d-flex text-dark font-weight-bold">كلمة المرور</label>
                     <input id="password" type="password"
                         class="border rounded border-info shadow form-control @error('password') is-invalid @enderror"
                         name="password" required autocomplete="new-password">
@@ -53,11 +53,16 @@
                         </span>
                     @enderror
                 </div>
-                <button class="btn btn-info text-left mt-2" type="submit" style="background: #476D7C;">كن يحياويًا!</button>
+                <button class="btn btn-info text-left mt-2" type="submit" style="background: #476D7C;">سجل!</button>
             </form>
         </div>
     </div>
     @push('styles')
         <link href="{{ asset('css/style.css') }}" rel="stylesheet">
+        <style>
+            form label {
+                color: #4b3a2c;
+            }
+        </style>
     @endpush
 @endsection
