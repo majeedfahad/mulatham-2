@@ -99,7 +99,7 @@
         <nav class="navbar navbar-expand-md navbar-light shadow-sm desert-navbar">
             <div class="container d-flex align-items-center justify-content-between">
                 <a class="navbar-brand d-flex align-items-center" href="{{ route('home') }}">
-                    <img src="{{ asset('imgs/logo-desert.svg') }}" alt="سفرة حايل" class="brand-logo ml-2">
+                    <img src="{{ asset('imgs/logo-desert.png') }}" alt="سفرة حايل" class="brand-logo ml-2">
                     <div>
                         <div class="brand-title">سفرة حايل</div>
                         <div class="brand-sub">هـ ١٤٤٧</div>

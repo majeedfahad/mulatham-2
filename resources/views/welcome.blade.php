@@ -5,7 +5,7 @@
     <div class="welcome-hero text-center">
         <div class="hero-overlay"></div>
         <div class="hero-content">
-            <img src="imgs/logo-desert.svg" alt="سفرة حايل" class="hero-logo mb-3">
+            <img src="imgs/logo-desert.png" alt="سفرة حايل" class="hero-logo mb-3">
             <h1 class="hero-title mb-1">سفرة حايل</h1>
             <p class="hero-sub mb-4">هـ ١٤٤٧</p>
             <p class="hero-text">ورنا غموضك وفز بلقب فارس حايل الملثم.</p>
@@ -31,7 +31,7 @@
             .hero-overlay {
                 position: absolute;
                 inset: 0;
-                background-image: url('imgs/logo-desert.svg');
+                background-image: url('imgs/logo-desert.png');
                 background-repeat: no-repeat;
                 background-position: center 70%;
                 background-size: 70%;
