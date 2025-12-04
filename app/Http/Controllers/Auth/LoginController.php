@@ -52,6 +52,6 @@ class LoginController extends Controller
             //return redirect()->intended('/details');
         }
         // if failed login
-        return back()->withErrors(['name' => 'بياناتك خطأ يا يحياوي!']);
+        return back()->withErrors(['name' => 'بياناتك خطأ!']);
     }
 }

@@ -10,7 +10,7 @@
         @endpush
         <div class="col-12 p-0 rounded rounded-lg-0 my-2" id="myTable">
             <div id="table_header" class="row text-center d-flex align-content-center" dir="rtl">
-                <div class="col-12">اليحياوي</div>
+                <div class="col-12">الفارس</div>
             </div>
 
             @foreach ($users->shuffle() as $user)

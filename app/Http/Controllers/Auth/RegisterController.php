@@ -78,6 +78,6 @@ class RegisterController extends Controller
 
     public function showRegistrationForm()
     {
-        return redirect('home');
+        return view('auth.register');
     }
 }

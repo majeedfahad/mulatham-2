@@ -7,7 +7,7 @@
     <!-- CSRF Token -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>اليحياوي الملثم</title>
+    <title>الفارس الملثم</title>
 
     <!-- Scripts -->
     <script src="{{ asset('js/app.js') }}" defer></script>
@@ -39,14 +39,11 @@
                                 هلا بالمدير
                             </div>
                             <div class="row">
-                                <div class="col-4">
+                                <div class="col-6">
                                     <a href="{{route('settings.index')}}" class="btn btn-sm btn-outline-info">الإعدادات</a>
                                 </div>
-                                <div class="col-4">
+                                <div class="col-6">
                                     <a href="{{route('home')}}" class="btn btn-sm btn-outline-info">الرئيسية</a>
-                                </div>
-                                <div class="col-4">
-                                    <a href="https://alnamas.fun" class="btn btn-sm btn-outline-info">موقع النماص</a>
                                 </div>
                             </div>
 
@@ -55,16 +52,13 @@
                                 أهلًا {{Auth::user()->name}}
                             </div>
                             <div class="row">
-                                <div class="col-4 pr-0">
+                                <div class="col-6 pr-0">
                                     <a href="{{ route('logout') }}"
                                        class="btn btn-sm btn-outline-info"
                                        onclick="event.preventDefault();
                                             document.getElementById('logout-form').submit();">تسجيل الخروج</a>
                                 </div>
-                                <div class="col-4 pr-0">
-                                    <a href="https://alnamas.fun" class="btn btn-sm btn-outline-info">موقع النماص</a>
-                                </div>
-                                <div class="col-4 pr-0">
+                                <div class="col-6 pr-0">
                                     @if(Route::currentRouteName() == 'home')
                                         <a href="{{route('users')}}" class="btn btn-sm btn-outline-info">قائمة المشاركين</a>
                                     @else
