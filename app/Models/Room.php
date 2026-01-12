@@ -15,6 +15,7 @@ class Room extends Model
         'status',
         'phase',
         'question_bank_started_at',
+        'question_bank_duration',
         'max_questions',
         'min_players_to_end',
         'current_question_index',
@@ -24,6 +25,7 @@ class Room extends Model
 
     protected $casts = [
         'max_questions' => 'integer',
+        'question_bank_duration' => 'integer',
         'min_players_to_end' => 'integer',
         'current_question_index' => 'integer',
         'reveal_started_at' => 'datetime',
@@ -220,12 +222,13 @@ class Room extends Model
      */
     public function getQuestionBankRemainingTime(): int
     {
+        $total = $this->question_bank_duration ?? config('game.question_bank_timer', 60);
+
         if (!$this->question_bank_started_at) {
-            return config('game.question_bank_timer', 60);
+            return $total;
         }
 
         $elapsed = now()->diffInSeconds($this->question_bank_started_at);
-        $total = config('game.question_bank_timer', 60);
         $remaining = $total - $elapsed;
 
         return max(0, $remaining);

@@ -18,11 +18,13 @@ class RoomPlayer extends Model
         'status',
         'is_host',
         'session_token',
+        'last_seen_at',
     ];
 
     protected $casts = [
         'score' => 'integer',
         'is_host' => 'boolean',
+        'last_seen_at' => 'datetime',
     ];
 
     protected $hidden = [
@@ -182,5 +184,32 @@ class RoomPlayer extends Model
         $this->update(['score' => 0]);
         $recipient->addScore($points);
         return $points;
+    }
+
+    /**
+     * Update the last seen timestamp
+     */
+    public function updateLastSeen(): void
+    {
+        $this->update(['last_seen_at' => now()]);
+    }
+
+    /**
+     * Check if player is online (seen within last 20 seconds)
+     */
+    public function isOnline(): bool
+    {
+        if (!$this->last_seen_at) {
+            return false;
+        }
+        return $this->last_seen_at->diffInSeconds(now()) < 20;
+    }
+
+    /**
+     * Check if player is offline (not seen for more than 20 seconds)
+     */
+    public function isOffline(): bool
+    {
+        return !$this->isOnline();
     }
 }

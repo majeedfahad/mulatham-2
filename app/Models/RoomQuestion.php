@@ -64,15 +64,46 @@ class RoomQuestion extends Model
     }
 
     /**
-     * Check if all players have answered (including creator since everyone answers now)
+     * Check if all online players have answered (including creator since everyone answers now)
+     * Offline players (no heartbeat for 20+ seconds) are excluded from the count
      */
     public function allPlayersAnswered(): bool
     {
-        $answerablePlayersCount = $this->room->players()
+        $answerablePlayers = $this->room->players()
             ->whereIn('status', ['active', 'revealed'])
-            ->count();
+            ->get();
 
-        return $this->answers()->count() >= $answerablePlayersCount;
+        // Count only online players
+        $onlinePlayersCount = $answerablePlayers->filter(function ($player) {
+            return $player->isOnline();
+        })->count();
+
+        // If no one is online, consider all answered to avoid stuck state
+        if ($onlinePlayersCount === 0) {
+            return true;
+        }
+
+        return $this->answers()->count() >= $onlinePlayersCount;
+    }
+
+    /**
+     * Get count of online answerable players
+     */
+    public function getOnlineAnswerablePlayersCount(): int
+    {
+        return $this->room->players()
+            ->whereIn('status', ['active', 'revealed'])
+            ->get()
+            ->filter(fn($p) => $p->isOnline())
+            ->count();
+    }
+
+    /**
+     * Get count of players who have answered
+     */
+    public function getAnsweredCount(): int
+    {
+        return $this->answers()->count();
     }
 
     /**

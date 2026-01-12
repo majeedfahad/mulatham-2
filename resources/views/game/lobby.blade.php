@@ -80,7 +80,8 @@
         <div class="game-card-body py-2">
             <div class="d-flex flex-wrap gap-2">
                 @foreach($players as $p)
-                    <div class="player-chip {{ $p->status === 'ready' ? 'ready' : 'waiting' }} {{ $p->id === $player->id ? 'is-you' : '' }}">
+                    <div class="player-chip {{ $p->status === 'ready' ? 'ready' : 'waiting' }} {{ $p->id === $player->id ? 'is-you' : '' }}" data-player-id="{{ $p->id }}">
+                        <span class="online-indicator {{ $p->isOnline() ? 'online' : 'offline' }}"></span>
                         <span class="avatar">{{ mb_substr($p->name, 0, 1) }}</span>
                         <span class="name">{{ $p->name }}</span>
                         @if($p->is_host)
@@ -88,6 +89,11 @@
                         @endif
                         @if($p->status === 'ready')
                             <i class="bi bi-check-circle-fill text-success"></i>
+                        @endif
+                        @if($player->is_host && $p->id !== $player->id)
+                            <button type="button" class="kick-btn" onclick="kickPlayer({{ $p->id }})" title="طرد اللاعب">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
                         @endif
                     </div>
                 @endforeach
@@ -116,6 +122,7 @@
         @if($player->is_host)
             <form action="{{ route('game.start', $room->code) }}" method="POST" id="startGameForm">
                 @csrf
+                <input type="hidden" name="question_bank_duration" id="questionBankDuration" value="{{ $room->question_bank_duration ?? 60 }}">
                 <button
                     type="submit"
                     class="btn-game btn-game-primary"
@@ -127,6 +134,27 @@
             </form>
         @endif
     </div>
+
+    <!-- Timer Selection for Host -->
+    @if($player->is_host)
+        <div class="text-center mt-3 animate-fade-in">
+            <small class="text-muted-custom d-block mb-2">
+                <i class="bi bi-clock"></i> وقت كتابة الأسئلة
+            </small>
+            <div class="timer-selector d-flex flex-wrap justify-content-center gap-2">
+                @foreach([30, 60, 90, 120, 150, 180] as $duration)
+                    <button
+                        type="button"
+                        class="timer-btn {{ ($room->question_bank_duration ?? 60) == $duration ? 'active' : '' }}"
+                        data-duration="{{ $duration }}"
+                        onclick="selectTimer({{ $duration }})"
+                    >
+                        {{ $duration }} ث
+                    </button>
+                @endforeach
+            </div>
+        </div>
+    @endif
 
     <p class="text-center text-muted-custom small mt-2 mb-0" id="hostMessage" @if(!$player->is_host || $players->where('status', 'ready')->count() >= config('game.min_players', 3)) style="display: none;" @endif>
         انتظر حتى يكون {{ config('game.min_players', 3) }} لاعبين جاهزين
@@ -321,6 +349,69 @@
 
 @push('styles')
 <style>
+    /* Timer Selector */
+    .timer-btn {
+        padding: 6px 12px;
+        border: 1px solid var(--color-border);
+        background: var(--color-card);
+        color: var(--color-text);
+        border-radius: 20px;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .timer-btn:hover {
+        border-color: var(--color-primary);
+        background: var(--color-background);
+    }
+
+    .timer-btn.active {
+        background: var(--color-primary);
+        border-color: var(--color-primary);
+        color: white;
+    }
+
+    /* Online/Offline Indicator */
+    .online-indicator {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-left: 4px;
+        flex-shrink: 0;
+    }
+
+    .online-indicator.online {
+        background: #22c55e;
+        box-shadow: 0 0 4px #22c55e;
+    }
+
+    .online-indicator.offline {
+        background: #9ca3af;
+    }
+
+    /* Kick Button */
+    .kick-btn {
+        background: transparent;
+        border: none;
+        color: var(--color-muted);
+        padding: 2px 4px;
+        margin-right: -4px;
+        cursor: pointer;
+        opacity: 0;
+        transition: all 0.2s ease;
+        font-size: 0.7rem;
+    }
+
+    .player-chip:hover .kick-btn {
+        opacity: 1;
+    }
+
+    .kick-btn:hover {
+        color: #ef4444;
+    }
+
     /* Custom Modal Backdrop */
     .custom-modal-backdrop {
         position: fixed;
@@ -643,6 +734,23 @@
         }
     }
 
+    // Timer selection (host only)
+    function selectTimer(duration) {
+        // Update hidden input
+        const durationInput = document.getElementById('questionBankDuration');
+        if (durationInput) {
+            durationInput.value = duration;
+        }
+
+        // Update button states
+        document.querySelectorAll('.timer-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (parseInt(btn.dataset.duration) === duration) {
+                btn.classList.add('active');
+            }
+        });
+    }
+
     // Update ready button appearance
     function updateReadyButton() {
         const btn = document.getElementById('readyBtn');
@@ -715,6 +823,75 @@
         document.body.removeChild(textarea);
     }
 
+    // Heartbeat - ping server every 30 seconds to stay "online"
+    const heartbeatUrl = '{{ route("game.heartbeat", $room->code) }}';
+    let onlineStatus = {};
+
+    async function sendHeartbeat() {
+        try {
+            const response = await fetch(heartbeatUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            const data = await response.json();
+            if (data.success && data.players) {
+                // Update online status for all players
+                data.players.forEach(p => {
+                    onlineStatus[p.id] = p.is_online;
+                    updatePlayerOnlineIndicator(p.id, p.is_online);
+                });
+            }
+        } catch (error) {
+            console.log('Heartbeat error:', error);
+        }
+    }
+
+    function updatePlayerOnlineIndicator(playerId, isOnline) {
+        const chip = document.querySelector(`.player-chip[data-player-id="${playerId}"]`);
+        if (chip) {
+            const indicator = chip.querySelector('.online-indicator');
+            if (indicator) {
+                indicator.classList.remove('online', 'offline');
+                indicator.classList.add(isOnline ? 'online' : 'offline');
+            }
+        }
+    }
+
+    // Start heartbeat on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        sendHeartbeat(); // Initial heartbeat
+        setInterval(sendHeartbeat, 10000); // Then every 10 seconds
+    });
+
+    // Kick player function (host only)
+    async function kickPlayer(playerId) {
+        if (!confirm('هل تريد طرد هذا اللاعب؟')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/room/${roomCode}/kick/${playerId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            const data = await response.json();
+            if (!data.success) {
+                alert(data.message || 'حدث خطأ');
+            }
+        } catch (error) {
+            console.log('Kick error:', error);
+            alert('حدث خطأ أثناء طرد اللاعب');
+        }
+    }
+
     // Update players list UI
     function updatePlayersUI(players, playerCount, readyCount, waitingCount, action = null) {
         // Check if current player is now host
@@ -738,12 +915,16 @@
                 const isYou = p.id === currentPlayerId;
                 const statusClass = p.status === 'ready' ? 'ready' : 'waiting';
                 const youClass = isYou ? 'is-you' : '';
+                const onlineClass = p.is_online !== false ? 'online' : 'offline';
+                const showKickBtn = isHost && !isYou && !p.is_host;
                 html += `
-                    <div class="player-chip ${statusClass} ${youClass}">
+                    <div class="player-chip ${statusClass} ${youClass}" data-player-id="${p.id}">
+                        <span class="online-indicator ${onlineClass}"></span>
                         <span class="avatar">${p.name.charAt(0)}</span>
                         <span class="name">${p.name}</span>
                         ${p.is_host ? '<i class="bi bi-star-fill text-warning"></i>' : ''}
                         ${p.status === 'ready' ? '<i class="bi bi-check-circle-fill text-success"></i>' : ''}
+                        ${showKickBtn ? `<button type="button" class="kick-btn" onclick="kickPlayer(${p.id})" title="طرد اللاعب"><i class="bi bi-x-lg"></i></button>` : ''}
                     </div>
                 `;
             });

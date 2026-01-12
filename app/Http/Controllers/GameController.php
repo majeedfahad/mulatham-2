@@ -109,7 +109,13 @@ class GameController extends Controller
      */
     public function lobby(Request $request, $code)
     {
-        $room = Room::where('code', $code)->firstOrFail();
+        $room = Room::where('code', $code)->first();
+
+        // Room doesn't exist
+        if (!$room) {
+            return redirect()->route('game.landing')
+                ->withErrors(['error' => 'الغرفة غير موجودة']);
+        }
 
         // Allow token-based auth via URL (for testing)
         if ($request->has('token')) {
@@ -121,9 +127,19 @@ class GameController extends Controller
 
         $player = $this->getCurrentPlayer($room);
 
+        // Player not in room - show join form if room is in lobby
         if (!$player) {
+            if ($room->isInLobby()) {
+                // Show join form directly on this page
+                return view('game.join-room', [
+                    'room' => $room,
+                    'players' => $room->players,
+                ]);
+            }
+
+            // Game already started or finished
             return redirect()->route('game.landing')
-                ->withErrors(['error' => 'أنت لست في هذه الغرفة']);
+                ->withErrors(['error' => 'لا يمكن الانضمام - اللعبة بدأت أو انتهت']);
         }
 
         if ($room->isPlaying()) {
@@ -176,7 +192,7 @@ class GameController extends Controller
     /**
      * Start the game (host only)
      */
-    public function startGame($code)
+    public function startGame(Request $request, $code)
     {
         $room = Room::where('code', $code)->firstOrFail();
         $player = $this->getCurrentPlayer($room);
@@ -195,6 +211,10 @@ class GameController extends Controller
             return back()->withErrors(['error' => "يجب أن يكون {$minPlayers} لاعبين جاهزين على الأقل"]);
         }
 
+        // Get the question bank duration from host (30-180 seconds)
+        $duration = $request->input('question_bank_duration', 60);
+        $duration = max(30, min(180, (int) $duration)); // Clamp between 30 and 180
+
         // Activate all ready players
         $room->players()->where('status', 'ready')->update(['status' => 'active']);
 
@@ -206,6 +226,7 @@ class GameController extends Controller
             'status' => 'playing',
             'phase' => 'question_bank',
             'question_bank_started_at' => now(),
+            'question_bank_duration' => $duration,
             'current_question_index' => 0, // Will be set to 1 when first question is selected
         ]);
 
@@ -213,7 +234,7 @@ class GameController extends Controller
         broadcast(new GameStateUpdated($room, 'game_started', [
             'redirect_url' => route('game.play', $code),
             'phase' => 'question_bank',
-            'timer' => config('game.question_bank_timer', 60),
+            'timer' => $duration,
         ]));
 
         return redirect()->route('game.play', $code);
@@ -310,6 +331,10 @@ class GameController extends Controller
         $totalQuestionsInBank = $room->questions()->count();
         $effectiveTotalQuestions = min($room->max_questions, $totalQuestionsInBank);
 
+        // Get answer statistics for waiting display
+        $answeredCount = $currentQuestion ? $currentQuestion->getAnsweredCount() : 0;
+        $onlinePlayersCount = $currentQuestion ? $currentQuestion->getOnlineAnswerablePlayersCount() : 0;
+
         return view('game.play', [
             'room' => $room,
             'player' => $player,
@@ -323,6 +348,8 @@ class GameController extends Controller
             'currentQuestionNumber' => $room->current_question_index,
             'isQuestionCreator' => $isQuestionCreator,
             'totalPlayers' => $room->players()->whereIn('status', ['active', 'revealed'])->count(),
+            'answeredCount' => $answeredCount,
+            'onlinePlayersCount' => $onlinePlayersCount,
         ]);
     }
 
@@ -982,7 +1009,7 @@ class GameController extends Controller
         }
 
         // Get all players with their correct answers count and successful reveals count
-        $players = $room->players()
+        $allPlayers = $room->players()
             ->withCount([
                 'answers as correct_answers_count' => function ($query) {
                     $query->where('is_correct', true);
@@ -991,7 +1018,10 @@ class GameController extends Controller
                     $query->where('is_correct', true);
                 },
             ])
-            ->get()
+            ->get();
+
+        // Separate active (hidden) players from revealed players
+        $activePlayers = $allPlayers->where('status', 'active')
             ->sortBy([
                 ['score', 'desc'],
                 ['correct_answers_count', 'desc'],
@@ -999,6 +1029,21 @@ class GameController extends Controller
                 ['created_at', 'asc'],
             ])
             ->values();
+
+        $revealedPlayers = $allPlayers->where('status', 'revealed')
+            ->sortBy([
+                ['score', 'desc'],
+                ['correct_answers_count', 'desc'],
+                ['successful_reveals_count', 'desc'],
+                ['created_at', 'asc'],
+            ])
+            ->values();
+
+        // Winner is only from active (non-revealed) players
+        $winner = $activePlayers->first();
+
+        // Combine for display: active players first, then revealed
+        $players = $activePlayers->concat($revealedPlayers);
 
         // Get all reveals
         $reveals = $room->reveals()
@@ -1010,8 +1055,10 @@ class GameController extends Controller
             'room' => $room,
             'player' => $player,
             'players' => $players,
+            'activePlayers' => $activePlayers,
+            'revealedPlayers' => $revealedPlayers,
             'reveals' => $reveals,
-            'winner' => $players->first(),
+            'winner' => $winner,
         ]);
     }
 
@@ -1153,5 +1200,127 @@ class GameController extends Controller
                 'status' => 'pending',
             ]);
         }
+    }
+
+    /**
+     * Heartbeat endpoint - players ping this to stay "online"
+     */
+    public function heartbeat($code)
+    {
+        $room = Room::where('code', $code)->first();
+        $player = $this->getCurrentPlayer($room);
+
+        if (!$player) {
+            return response()->json(['success' => false], 401);
+        }
+
+        $player->updateLastSeen();
+
+        $response = [
+            'success' => true,
+        ];
+
+        // Check if we need to advance the game due to offline players
+        if ($room->isPlaying()) {
+            $currentQuestion = $room->currentQuestion()->first();
+
+            if ($currentQuestion && $currentQuestion->isAnswering()) {
+                // Check if all online players have answered
+                if ($currentQuestion->allPlayersAnswered()) {
+                    // Move to reveal phase
+                    $this->transitionToRevealPhase($room, $currentQuestion);
+                    $response['phase_changed'] = true;
+                    $response['new_phase'] = 'revealing';
+                }
+            }
+        }
+
+        // Return list of players with their online status
+        $players = $room->fresh()->players->map(function ($p) {
+            return [
+                'id' => $p->id,
+                'name' => $p->name,
+                'is_online' => $p->isOnline(),
+                'is_host' => $p->is_host,
+            ];
+        });
+
+        $response['players'] = $players;
+
+        return response()->json($response);
+    }
+
+    /**
+     * Transition from answering to reveal phase
+     */
+    private function transitionToRevealPhase(Room $room, $currentQuestion): void
+    {
+        // Incentive Shift: Award creator points only if question had mixed results
+        $otherPlayersAnswers = $currentQuestion->answers()
+            ->where('room_player_id', '!=', $currentQuestion->creator_id)
+            ->get();
+
+        if ($otherPlayersAnswers->count() > 0) {
+            $hasCorrect = $otherPlayersAnswers->where('is_correct', true)->count() > 0;
+            $hasWrong = $otherPlayersAnswers->where('is_correct', false)->count() > 0;
+
+            if ($hasCorrect && $hasWrong && $currentQuestion->creator_id) {
+                $wrongCount = $otherPlayersAnswers->where('is_correct', false)->count();
+                $currentQuestion->creator->addPoints($wrongCount);
+            }
+        }
+
+        // Move to reveal phase
+        $currentQuestion->startRevealing();
+        $room->update(['phase' => 'revealing']);
+
+        // Broadcast phase change
+        broadcast(new GameStateUpdated($room, 'phase_changed', [
+            'phase' => 'revealing',
+            'question_status' => 'revealing',
+        ]));
+    }
+
+    /**
+     * Kick a player from the room (host only)
+     */
+    public function kickPlayer($code, $playerId)
+    {
+        $room = Room::where('code', $code)->first();
+        $currentPlayer = $this->getCurrentPlayer($room);
+
+        if (!$currentPlayer || !$currentPlayer->isHost()) {
+            return response()->json(['success' => false, 'message' => 'غير مصرح'], 403);
+        }
+
+        $playerToKick = $room->players()->find($playerId);
+
+        if (!$playerToKick) {
+            return response()->json(['success' => false, 'message' => 'اللاعب غير موجود'], 404);
+        }
+
+        if ($playerToKick->isHost()) {
+            return response()->json(['success' => false, 'message' => 'لا يمكن طرد المضيف'], 400);
+        }
+
+        // Delete the player
+        $playerToKick->delete();
+
+        // Broadcast player kicked
+        broadcast(new PlayerUpdated($room, 'kicked', null));
+
+        // If game is playing and not enough players remain, end the game
+        if ($room->isPlaying()) {
+            $activePlayersCount = $room->activePlayers()->count();
+            if ($activePlayersCount < 2) {
+                $room->update(['status' => 'finished', 'phase' => null]);
+                broadcast(new GameStateUpdated($room, 'game_ended', [
+                    'reason' => 'not_enough_players',
+                    'redirect_url' => route('game.results', $code),
+                ]));
+            }
+        }
+
+        return response()->json(['success' => true]);
     }
 }

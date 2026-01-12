@@ -25,57 +25,105 @@
                     </div>
                 </div>
             </div>
+        @else
+            <div class="game-card d-inline-block px-5 py-4">
+                <div class="text-muted-custom mb-2">لا يوجد فائز</div>
+                <p class="mb-0">تم كشف جميع اللاعبين!</p>
+            </div>
         @endif
     </div>
 
     <div class="row justify-content-center">
-        <!-- Leaderboard -->
+        <!-- Active Players Leaderboard -->
         <div class="col-lg-8">
-            <div class="game-card animate-fade-in" style="animation-delay: 0.1s">
-                <div class="game-card-header">
-                    <h5 class="mb-0 fw-bold">
-                        <i class="bi bi-bar-chart-fill me-2"></i>
-                        ترتيب اللاعبين
-                    </h5>
-                </div>
-                <div class="game-card-body">
-                    <div class="d-flex flex-column gap-3">
-                        @foreach($players as $index => $p)
-                            <div class="player-card {{ $index === 0 ? 'is-host' : '' }}">
-                                <div class="d-flex align-items-center gap-3">
-                                    <div class="fw-bold fs-4 text-muted-custom" style="width: 32px;">
-                                        @if($index === 0)
-                                            <i class="bi bi-trophy-fill text-warning"></i>
-                                        @elseif($index === 1)
-                                            <i class="bi bi-award-fill" style="color: #c0c0c0;"></i>
-                                        @elseif($index === 2)
-                                            <i class="bi bi-award-fill" style="color: #cd7f32;"></i>
-                                        @else
-                                            {{ $index + 1 }}
-                                        @endif
-                                    </div>
-                                    <div class="player-avatar">
-                                        {{ mb_substr($p->name, 0, 1) }}
-                                    </div>
-                                    <div class="flex-grow-1">
-                                        <div class="d-flex align-items-center gap-2">
-                                            <span class="fw-bold">{{ $p->name }}</span>
-                                            @if($p->id === $player->id)
-                                                <span class="badge bg-primary" style="font-size: 0.65rem;">أنت</span>
+            @if($activePlayers->count() > 0)
+                <div class="game-card animate-fade-in" style="animation-delay: 0.1s">
+                    <div class="game-card-header">
+                        <h5 class="mb-0 fw-bold">
+                            <i class="bi bi-shield-fill-check me-2 text-success"></i>
+                            اللاعبون المتبقون
+                        </h5>
+                    </div>
+                    <div class="game-card-body">
+                        <div class="d-flex flex-column gap-3">
+                            @foreach($activePlayers as $index => $p)
+                                <div class="player-card {{ $index === 0 ? 'is-host' : '' }}">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="fw-bold fs-4 text-muted-custom" style="width: 32px;">
+                                            @if($index === 0)
+                                                <i class="bi bi-trophy-fill text-warning"></i>
+                                            @elseif($index === 1)
+                                                <i class="bi bi-award-fill" style="color: #c0c0c0;"></i>
+                                            @elseif($index === 2)
+                                                <i class="bi bi-award-fill" style="color: #cd7f32;"></i>
+                                            @else
+                                                {{ $index + 1 }}
                                             @endif
                                         </div>
-                                        <small class="text-muted-custom">{{ $p->fake_name }}</small>
-                                    </div>
-                                    <div class="text-end">
-                                        <span class="fw-bold fs-5 text-primary-custom">{{ $p->score }}</span>
-                                        <small class="text-muted-custom d-block">نقطة</small>
+                                        <div class="player-avatar">
+                                            {{ mb_substr($p->name, 0, 1) }}
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="fw-bold">{{ $p->name }}</span>
+                                                @if($p->id === $player->id)
+                                                    <span class="badge bg-primary" style="font-size: 0.65rem;">أنت</span>
+                                                @endif
+                                            </div>
+                                            <small class="text-muted-custom">{{ $p->fake_name }}</small>
+                                        </div>
+                                        <div class="text-end">
+                                            <span class="fw-bold fs-5 text-primary-custom">{{ $p->score }}</span>
+                                            <small class="text-muted-custom d-block">نقطة</small>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        @endforeach
+                            @endforeach
+                        </div>
                     </div>
                 </div>
-            </div>
+            @endif
+
+            <!-- Revealed Players -->
+            @if($revealedPlayers->count() > 0)
+                <div class="game-card animate-fade-in mt-4" style="animation-delay: 0.2s">
+                    <div class="game-card-header">
+                        <h5 class="mb-0 fw-bold">
+                            <i class="bi bi-eye-fill me-2 text-danger"></i>
+                            اللاعبون المكشوفون
+                        </h5>
+                    </div>
+                    <div class="game-card-body">
+                        <div class="d-flex flex-column gap-3">
+                            @foreach($revealedPlayers as $index => $p)
+                                <div class="player-card player-revealed">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="fw-bold fs-4 text-muted-custom" style="width: 32px;">
+                                            <i class="bi bi-x-circle text-danger"></i>
+                                        </div>
+                                        <div class="player-avatar player-avatar-revealed">
+                                            {{ mb_substr($p->name, 0, 1) }}
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="fw-bold text-muted">{{ $p->name }}</span>
+                                                @if($p->id === $player->id)
+                                                    <span class="badge bg-secondary" style="font-size: 0.65rem;">أنت</span>
+                                                @endif
+                                            </div>
+                                            <small class="text-muted-custom">{{ $p->fake_name }}</small>
+                                        </div>
+                                        <div class="text-end">
+                                            <span class="fw-bold fs-5 text-muted">{{ $p->score }}</span>
+                                            <small class="text-muted-custom d-block">نقطة</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+            @endif
         </div>
     </div>
 
@@ -185,6 +233,17 @@
 
     .bi-trophy-fill {
         animation: bounce 2s ease-in-out infinite;
+    }
+
+    /* Revealed player styles */
+    .player-revealed {
+        opacity: 0.7;
+        background: var(--color-background) !important;
+    }
+
+    .player-avatar-revealed {
+        background: #ccc !important;
+        color: #888 !important;
     }
 
     /* Table styling for reveal history */

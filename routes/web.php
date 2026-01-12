@@ -54,6 +54,10 @@ Route::post('/room/{code}/end', [GameController::class, 'endGame'])->name('game.
 // Results
 Route::get('/room/{code}/results', [GameController::class, 'results'])->name('game.results');
 
+// Player status & management
+Route::post('/room/{code}/heartbeat', [GameController::class, 'heartbeat'])->name('game.heartbeat');
+Route::post('/room/{code}/kick/{playerId}', [GameController::class, 'kickPlayer'])->name('game.kick');
+
 
 // =====================================================
 // LEGACY ROUTES (keeping for reference, can be removed)

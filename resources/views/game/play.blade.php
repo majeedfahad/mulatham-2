@@ -387,7 +387,11 @@
                                 <div class="text-center py-4">
                                     <i class="bi bi-check-circle-fill text-success-custom fs-1 mb-3 d-block animate-pulse"></i>
                                     <h5 class="fw-bold mb-2">تم إرسال إجابتك</h5>
-                                    <p class="text-muted-custom mb-0">في انتظار بقية اللاعبين...</p>
+                                    <p class="text-muted-custom mb-2">في انتظار بقية اللاعبين...</p>
+                                    <small class="text-muted-custom">
+                                        <i class="bi bi-people-fill me-1"></i>
+                                        <span id="answeredCount">{{ $answeredCount }}</span> / <span id="onlinePlayersCount">{{ $onlinePlayersCount }}</span> أجابوا
+                                    </small>
                                 </div>
                             @else
                                 <div class="text-center py-4">
@@ -812,6 +816,33 @@
     let revealTimerInterval = null;
     let countdownInterval = null;
     let isInRevealMode = false;
+
+    // Heartbeat - ping server every 10 seconds to stay "online"
+    async function sendHeartbeat() {
+        try {
+            const response = await fetch('/room/{{ $room->code }}/heartbeat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            const data = await response.json();
+
+            // If phase changed due to offline players, reload the page
+            if (data.phase_changed) {
+                console.log('Phase changed to:', data.new_phase);
+                window.location.reload();
+            }
+        } catch (error) {
+            console.log('Heartbeat error:', error);
+        }
+    }
+
+    // Start heartbeat
+    sendHeartbeat();
+    setInterval(sendHeartbeat, 10000);
 
     // Clean up any stale modal backdrops on page load
     document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
