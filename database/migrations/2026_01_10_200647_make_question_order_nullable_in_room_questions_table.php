@@ -11,13 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('questions', function (Blueprint $table) {
-            $table->id();
-            $table->string('title');
-            $table->double('score');
-            $table->integer('type');
-            $table->integer('status')->default(0);
-            $table->timestamps();
+        Schema::table('room_questions', function (Blueprint $table) {
+            $table->integer('question_order')->nullable()->default(null)->change();
         });
     }
 
@@ -26,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('questions');
+        Schema::table('room_questions', function (Blueprint $table) {
+            $table->integer('question_order')->nullable(false)->change();
+        });
     }
 };

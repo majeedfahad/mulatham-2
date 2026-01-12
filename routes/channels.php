@@ -16,3 +16,6 @@ use Illuminate\Support\Facades\Broadcast;
 Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
     return (int) $user->id === (int) $id;
 });
+
+// Room channels are public since we use guest authentication via session tokens
+// The room.{code} channel is a public channel that anyone can listen to

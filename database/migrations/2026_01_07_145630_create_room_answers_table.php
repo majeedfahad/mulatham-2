@@ -11,12 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('eliminations', function (Blueprint $table) {
+        Schema::create('room_answers', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('attacker_id');
-            $table->unsignedBigInteger('target_id');
-            $table->string('status');
-            $table->double('points');
+            $table->foreignId('room_question_id')->constrained()->onDelete('cascade');
+            $table->foreignId('room_player_id')->constrained()->onDelete('cascade');
+            $table->text('answer');
+            $table->boolean('is_correct')->default(false);
             $table->timestamps();
         });
     }
@@ -26,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('eliminations');
+        Schema::dropIfExists('room_answers');
     }
 };

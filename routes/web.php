@@ -1,8 +1,9 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use \App\Http\Controllers\SettingController;
-use \App\Http\Controllers\QuestionController;
+use App\Http\Controllers\GameController;
+use App\Http\Controllers\SettingController;
+use App\Http\Controllers\QuestionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -15,9 +16,52 @@ use \App\Http\Controllers\QuestionController;
 |
 */
 
-Route::get('/', function () {
+// =====================================================
+// NEW GAME ROUTES (Session-based party game)
+// =====================================================
+
+// Landing page - create or join room
+Route::get('/', [GameController::class, 'landing'])->name('game.landing');
+
+// Room creation and joining
+Route::post('/room/create', [GameController::class, 'createRoom'])->name('game.create');
+Route::post('/room/join', [GameController::class, 'joinRoom'])->name('game.join');
+
+// Lobby
+Route::get('/room/{code}', [GameController::class, 'lobby'])->name('game.lobby');
+Route::post('/room/{code}/ready', [GameController::class, 'toggleReady'])->name('game.ready');
+Route::post('/room/{code}/start', [GameController::class, 'startGame'])->name('game.start');
+Route::post('/room/{code}/leave', [GameController::class, 'leaveRoom'])->name('game.leave');
+
+// Gameplay
+Route::get('/room/{code}/play', [GameController::class, 'play'])->name('game.play');
+Route::get('/room/{code}/state', [GameController::class, 'getState'])->name('game.state');
+
+// Question Bank Phase
+Route::post('/room/{code}/question-bank/add', [GameController::class, 'submitQuestionToBank'])->name('game.questionBank.add');
+Route::delete('/room/{code}/question-bank/{questionId}', [GameController::class, 'deleteQuestionFromBank'])->name('game.questionBank.delete');
+Route::post('/room/{code}/question-bank/end', [GameController::class, 'endQuestionBankPhase'])->name('game.questionBank.end');
+
+// Answering & Revealing
+Route::post('/room/{code}/answer', [GameController::class, 'submitAnswer'])->name('game.answer');
+Route::post('/room/{code}/start-reveal', [GameController::class, 'startReveal'])->name('game.startReveal');
+Route::post('/room/{code}/cancel-reveal', [GameController::class, 'cancelReveal'])->name('game.cancelReveal');
+Route::post('/room/{code}/reveal-timeout', [GameController::class, 'revealTimeout'])->name('game.revealTimeout');
+Route::post('/room/{code}/reveal', [GameController::class, 'attemptReveal'])->name('game.reveal');
+Route::post('/room/{code}/next', [GameController::class, 'nextQuestion'])->name('game.next');
+Route::post('/room/{code}/end', [GameController::class, 'endGame'])->name('game.end');
+
+// Results
+Route::get('/room/{code}/results', [GameController::class, 'results'])->name('game.results');
+
+
+// =====================================================
+// LEGACY ROUTES (keeping for reference, can be removed)
+// =====================================================
+
+Route::get('/old', function () {
     return view('welcome');
-})->middleware('guest');
+})->middleware('guest')->name('old.welcome');
 
 Auth::routes();
 
@@ -28,8 +72,6 @@ Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name
 Route::get('/question/{id}', [App\Http\Controllers\HomeController::class, 'question'])->name('question');
 Route::post('answerQuestion/{id}', [App\Http\Controllers\HomeController::class, 'answerQuestion'])->name('answerQuestion');
 Route::get('users', [App\Http\Controllers\HomeController::class, 'users'])->name('users');
-
-
 
 Route::middleware(['auth', 'settings'])->prefix('Settings')->name('settings.')->group(function() {
     Route::get('/', [SettingController::class, 'index'])->name('index');
@@ -48,14 +90,9 @@ Route::middleware(['auth', 'settings'])->prefix('Settings')->name('settings.')->
         Route::post('store', [QuestionController::class, 'store'])->name('store');
         Route::post('update/{id}', [QuestionController::class, 'update'])->name('update');
         Route::get('destroy/{id}', [QuestionController::class, 'destroy'])->name('destroy');
-//        Route::resource('/', QuestionController::class);
         Route::get('activeQuestion/{id}', [QuestionController::class, 'activeQuestion'])->name('activeQuestion');
         Route::get('deActiveQuestion/{id}', [QuestionController::class, 'deActiveQuestion'])->name('deActiveQuestion');
         Route::get('correctAnswer/{id}', [QuestionController::class, 'correctAnswer'])->name('correctAnswer');
         Route::get('wrongAnswer/{id}', [QuestionController::class, 'wrongAnswer'])->name('wrongAnswer');
     });
 });
-
-Auth::routes();
-
-Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');

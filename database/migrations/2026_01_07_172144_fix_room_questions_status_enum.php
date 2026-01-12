@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -11,9 +12,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('questions', function (Blueprint $table) {
-            $table->string('image_path')->nullable()->after('title');
-        });
+        DB::statement("ALTER TABLE room_questions MODIFY COLUMN status ENUM('writing', 'pending', 'answering', 'revealing', 'completed') DEFAULT 'pending'");
     }
 
     /**
@@ -21,8 +20,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('questions', function (Blueprint $table) {
-            $table->dropColumn('image_path');
-        });
+        DB::statement("ALTER TABLE room_questions MODIFY COLUMN status ENUM('pending', 'answering', 'revealing', 'completed') DEFAULT 'pending'");
     }
 };

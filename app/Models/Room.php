@@ -1,0 +1,266 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
+
+class Room extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'code',
+        'status',
+        'phase',
+        'question_bank_started_at',
+        'max_questions',
+        'min_players_to_end',
+        'current_question_index',
+        'revealing_player_id',
+        'reveal_started_at',
+    ];
+
+    protected $casts = [
+        'max_questions' => 'integer',
+        'min_players_to_end' => 'integer',
+        'current_question_index' => 'integer',
+        'reveal_started_at' => 'datetime',
+        'question_bank_started_at' => 'datetime',
+    ];
+
+    /**
+     * Generate a unique room code
+     */
+    public static function generateCode(): string
+    {
+        do {
+            $code = strtoupper(Str::random(6));
+        } while (self::where('code', $code)->exists());
+
+        return $code;
+    }
+
+    /**
+     * Get all players in the room
+     */
+    public function players()
+    {
+        return $this->hasMany(RoomPlayer::class);
+    }
+
+    /**
+     * Get the host player
+     */
+    public function host()
+    {
+        return $this->hasOne(RoomPlayer::class)->where('is_host', true);
+    }
+
+    /**
+     * Get all questions for this room
+     */
+    public function questions()
+    {
+        return $this->hasMany(RoomQuestion::class)->orderBy('question_order');
+    }
+
+    /**
+     * Get the current active question
+     */
+    public function currentQuestion()
+    {
+        return $this->hasOne(RoomQuestion::class)
+            ->where('question_order', $this->current_question_index);
+    }
+
+    /**
+     * Get all reveals in this room
+     */
+    public function reveals()
+    {
+        return $this->hasMany(Reveal::class);
+    }
+
+    /**
+     * Get active (not eliminated/revealed) players
+     */
+    public function activePlayers()
+    {
+        return $this->players()->where('status', 'active');
+    }
+
+    /**
+     * Get players who can still be revealed (active only)
+     */
+    public function revealablePlayers()
+    {
+        return $this->activePlayers();
+    }
+
+    /**
+     * Check if game should end
+     */
+    public function shouldEndGame(): bool
+    {
+        $activeCount = $this->activePlayers()->count();
+        $questionsCompleted = $this->current_question_index >= $this->max_questions;
+
+        return $activeCount <= $this->min_players_to_end || $questionsCompleted;
+    }
+
+    /**
+     * Check if room is in lobby
+     */
+    public function isInLobby(): bool
+    {
+        return $this->status === 'lobby';
+    }
+
+    /**
+     * Check if game is playing
+     */
+    public function isPlaying(): bool
+    {
+        return $this->status === 'playing';
+    }
+
+    /**
+     * Check if game is finished
+     */
+    public function isFinished(): bool
+    {
+        return $this->status === 'finished';
+    }
+
+    /**
+     * Transfer host to next available player
+     */
+    public function transferHost(): ?RoomPlayer
+    {
+        $newHost = $this->players()
+            ->where('is_host', false)
+            ->whereIn('status', ['waiting', 'ready', 'active'])
+            ->oldest()
+            ->first();
+
+        if ($newHost) {
+            $this->players()->update(['is_host' => false]);
+            $newHost->update(['is_host' => true]);
+        }
+
+        return $newHost;
+    }
+
+    /**
+     * Get the player currently attempting a reveal
+     */
+    public function revealingPlayer()
+    {
+        return $this->belongsTo(RoomPlayer::class, 'revealing_player_id');
+    }
+
+    /**
+     * Check if someone is currently in a reveal attempt
+     */
+    public function hasActiveReveal(): bool
+    {
+        return $this->revealing_player_id !== null;
+    }
+
+    /**
+     * Clear the reveal lock
+     */
+    public function clearRevealLock(): void
+    {
+        $this->update([
+            'revealing_player_id' => null,
+            'reveal_started_at' => null,
+        ]);
+    }
+
+    /**
+     * Check if room is in question bank phase
+     */
+    public function isInQuestionBankPhase(): bool
+    {
+        return $this->phase === 'question_bank';
+    }
+
+    /**
+     * Check if room is in answering phase
+     */
+    public function isInAnsweringPhase(): bool
+    {
+        return $this->phase === 'answering';
+    }
+
+    /**
+     * Check if room is in revealing phase
+     */
+    public function isInRevealingPhase(): bool
+    {
+        return $this->phase === 'revealing';
+    }
+
+    /**
+     * Start question bank phase
+     */
+    public function startQuestionBankPhase(): void
+    {
+        $this->update([
+            'phase' => 'question_bank',
+            'question_bank_started_at' => now(),
+        ]);
+    }
+
+    /**
+     * Get remaining time for question bank phase in seconds
+     */
+    public function getQuestionBankRemainingTime(): int
+    {
+        if (!$this->question_bank_started_at) {
+            return config('game.question_bank_timer', 60);
+        }
+
+        $elapsed = now()->diffInSeconds($this->question_bank_started_at);
+        $total = config('game.question_bank_timer', 60);
+        $remaining = $total - $elapsed;
+
+        return max(0, $remaining);
+    }
+
+    /**
+     * Check if question bank timer has expired
+     */
+    public function hasQuestionBankTimerExpired(): bool
+    {
+        return $this->getQuestionBankRemainingTime() <= 0;
+    }
+
+    /**
+     * Get count of questions in the question bank for this room
+     */
+    public function getQuestionBankCount(): int
+    {
+        return $this->questions()
+            ->where('status', 'pending')
+            ->whereNotNull('question_text')
+            ->where('question_text', '!=', '')
+            ->count();
+    }
+
+    /**
+     * Get a random unused question from the bank
+     */
+    public function getRandomPendingQuestion(): ?RoomQuestion
+    {
+        return $this->questions()
+            ->where('status', 'pending')
+            ->whereNotNull('question_text')
+            ->where('question_text', '!=', '')
+            ->inRandomOrder()
+            ->first();
+    }
+}
