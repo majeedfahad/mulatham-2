@@ -107,9 +107,20 @@ class Room extends Model
     public function shouldEndGame(): bool
     {
         $activeCount = $this->activePlayers()->count();
-        $questionsCompleted = $this->current_question_index >= $this->max_questions;
+
+        // Use actual questions in bank instead of max_questions config
+        $totalQuestionsInBank = $this->questions()->count();
+        $questionsCompleted = $this->current_question_index >= $totalQuestionsInBank;
 
         return $activeCount <= $this->min_players_to_end || $questionsCompleted;
+    }
+
+    /**
+     * Get total questions count (actual questions in bank)
+     */
+    public function getTotalQuestionsCount(): int
+    {
+        return $this->questions()->count();
     }
 
     /**

@@ -287,7 +287,7 @@ class GameController extends Controller
                 'hasAnswered' => false,
                 'answers' => [],
                 'realPlayers' => collect(),
-                'totalQuestions' => $room->max_questions,
+                'totalQuestions' => $totalQuestionsInBank,
                 'currentQuestionNumber' => 0,
                 'isQuestionCreator' => false,
             ]);
@@ -327,9 +327,8 @@ class GameController extends Controller
             ->where('status', 'active')
             ->get(['id', 'name', 'fake_name']);
 
-        // Calculate the effective total questions (min of max_questions config and actual questions in bank)
-        $totalQuestionsInBank = $room->questions()->count();
-        $effectiveTotalQuestions = min($room->max_questions, $totalQuestionsInBank);
+        // Use all questions in the bank (no max_questions limit)
+        $totalQuestionsInBank = $room->getTotalQuestionsCount();
 
         // Get answer statistics for waiting display
         $answeredCount = $currentQuestion ? $currentQuestion->getAnsweredCount() : 0;
@@ -344,7 +343,7 @@ class GameController extends Controller
             'hasAnswered' => $hasAnswered,
             'answers' => $answers,
             'realPlayers' => $realPlayers,
-            'totalQuestions' => $effectiveTotalQuestions,
+            'totalQuestions' => $totalQuestionsInBank,
             'currentQuestionNumber' => $room->current_question_index,
             'isQuestionCreator' => $isQuestionCreator,
             'totalPlayers' => $room->players()->whereIn('status', ['active', 'revealed'])->count(),
@@ -496,7 +495,7 @@ class GameController extends Controller
             'choices' => $firstQuestion->choices,
             'creator_fake_name' => $firstQuestion->creator ? $firstQuestion->creator->fake_name : null,
             'current_question_number' => 1,
-            'total_questions' => min($questionCount, $room->max_questions),
+            'total_questions' => $questionCount,
         ]));
 
         return response()->json([
@@ -759,12 +758,11 @@ class GameController extends Controller
         // Move to next question index
         $nextIndex = $room->current_question_index + 1;
 
-        // Get actual total questions count (min of max_questions and questions in bank)
-        $totalQuestionsInBank = $room->questions()->count();
-        $effectiveMaxQuestions = min($room->max_questions, $totalQuestionsInBank);
+        // Use all questions in the bank (no max_questions limit)
+        $totalQuestionsInBank = $room->getTotalQuestionsCount();
 
-        // Check if we've reached max questions
-        if ($nextIndex > $effectiveMaxQuestions) {
+        // Check if we've gone through all questions
+        if ($nextIndex > $totalQuestionsInBank) {
             $room->update(['status' => 'finished', 'phase' => null]);
             // Broadcast game ended to all players
             broadcast(new GameStateUpdated($room, 'game_ended', [
@@ -1127,79 +1125,6 @@ class GameController extends Controller
         }
 
         return $room->players()->where('session_token', $token)->first();
-    }
-
-    /**
-     * Load questions for a room from the question bank
-     */
-    private function loadQuestionsForRoom(Room $room): void
-    {
-        $questions = [
-            // جغرافيا
-            ['text' => 'ما هي عاصمة اليابان؟', 'answer' => 'طوكيو'],
-            ['text' => 'ما هي عاصمة فرنسا؟', 'answer' => 'باريس'],
-            ['text' => 'ما هي عاصمة مصر؟', 'answer' => 'القاهرة'],
-            ['text' => 'ما هي عاصمة الجزائر؟', 'answer' => 'الجزائر'],
-            ['text' => 'ما هي عاصمة تركيا؟', 'answer' => 'أنقرة'],
-            ['text' => 'ما هي أكبر قارة في العالم؟', 'answer' => 'آسيا'],
-            ['text' => 'ما هو أكبر محيط في العالم؟', 'answer' => 'المحيط الهادئ'],
-            ['text' => 'ما هو أطول نهر في العالم؟', 'answer' => 'نهر النيل'],
-            ['text' => 'ما هي أصغر دولة في العالم؟', 'answer' => 'الفاتيكان'],
-            ['text' => 'في أي قارة تقع البرازيل؟', 'answer' => 'أمريكا الجنوبية'],
-
-            // علوم
-            ['text' => 'كم عدد كواكب المجموعة الشمسية؟', 'answer' => '8'],
-            ['text' => 'ما هو العنصر الكيميائي الذي رمزه O؟', 'answer' => 'الأكسجين'],
-            ['text' => 'ما هو العنصر الكيميائي الذي رمزه Au؟', 'answer' => 'الذهب'],
-            ['text' => 'كم عدد عظام جسم الإنسان البالغ؟', 'answer' => '206'],
-            ['text' => 'ما هو أقرب كوكب للشمس؟', 'answer' => 'عطارد'],
-            ['text' => 'ما هو أكبر عضو في جسم الإنسان؟', 'answer' => 'الجلد'],
-            ['text' => 'كم تبلغ درجة غليان الماء بالدرجة المئوية؟', 'answer' => '100'],
-
-            // تاريخ
-            ['text' => 'في أي عام تأسست المملكة العربية السعودية؟', 'answer' => '1932'],
-            ['text' => 'في أي عام وقعت الحرب العالمية الأولى؟', 'answer' => '1914'],
-            ['text' => 'من هو أول رائد فضاء في التاريخ؟', 'answer' => 'يوري غاغارين'],
-            ['text' => 'في أي عام هبط الإنسان على القمر لأول مرة؟', 'answer' => '1969'],
-
-            // رياضة
-            ['text' => 'كم عدد لاعبي فريق كرة القدم؟', 'answer' => '11'],
-            ['text' => 'في أي عام فازت السعودية على الأرجنتين في كأس العالم؟', 'answer' => '2022'],
-            ['text' => 'ما هي الدولة الأكثر فوزاً بكأس العالم لكرة القدم؟', 'answer' => 'البرازيل'],
-            ['text' => 'كم شوطاً في مباراة كرة السلة؟', 'answer' => '4'],
-
-            // عامة
-            ['text' => 'كم عدد أيام السنة الكبيسة؟', 'answer' => '366'],
-            ['text' => 'كم عدد ألوان قوس قزح؟', 'answer' => '7'],
-            ['text' => 'ما هي اللغة الرسمية في البرازيل؟', 'answer' => 'البرتغالية'],
-            ['text' => 'كم عدد أركان الإسلام؟', 'answer' => '5'],
-            ['text' => 'ما هو الحيوان الأسرع في العالم؟', 'answer' => 'الفهد'],
-            ['text' => 'كم عدد أحرف اللغة العربية؟', 'answer' => '28'],
-            ['text' => 'ما هي أكبر دولة عربية من حيث المساحة؟', 'answer' => 'الجزائر'],
-            ['text' => 'كم عدد أيام الأسبوع؟', 'answer' => '7'],
-            ['text' => 'ما هو لون دم الأخطبوط؟', 'answer' => 'أزرق'],
-            ['text' => 'كم ساعة في اليوم؟', 'answer' => '24'],
-
-            // ثقافة عربية
-            ['text' => 'من هو مؤلف كتاب "مقدمة ابن خلدون"؟', 'answer' => 'ابن خلدون'],
-            ['text' => 'ما هي أطول سورة في القرآن الكريم؟', 'answer' => 'البقرة'],
-            ['text' => 'كم عدد السور في القرآن الكريم؟', 'answer' => '114'],
-            ['text' => 'ما هي أقصر سورة في القرآن الكريم؟', 'answer' => 'الكوثر'],
-        ];
-
-        // Shuffle and take max_questions
-        shuffle($questions);
-        $selectedQuestions = array_slice($questions, 0, $room->max_questions);
-
-        foreach ($selectedQuestions as $index => $question) {
-            RoomQuestion::create([
-                'room_id' => $room->id,
-                'question_text' => $question['text'],
-                'correct_answer' => $question['answer'],
-                'question_order' => $index + 1,
-                'status' => 'pending',
-            ]);
-        }
     }
 
     /**
