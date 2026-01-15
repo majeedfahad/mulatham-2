@@ -55,6 +55,7 @@ Route::post('/room/{code}/end', [GameController::class, 'endGame'])->name('game.
 
 // Results
 Route::get('/room/{code}/results', [GameController::class, 'results'])->name('game.results');
+Route::post('/room/{code}/play-again', [GameController::class, 'playAgain'])->name('game.playAgain');
 
 // =====================================================
 // SUGGESTIONS / FEEDBACK ROUTES

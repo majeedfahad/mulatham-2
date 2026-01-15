@@ -76,7 +76,8 @@
 
         @if($isQuestionBankPhase)
             <!-- Question Bank Phase - All Players Write Questions at Start -->
-            <div class="row justify-content-center" id="questionBankContent" style="{{ !$timerStarted ? 'display: none;' : '' }}">
+            <div class="row justify-content-center" id="questionBankContent"
+                style="{{ !$timerStarted ? 'display: none;' : '' }}">
                 <div class="col-lg-10">
                     <div class="game-card animate-fade-in">
                         <div class="game-card-body">
@@ -274,7 +275,8 @@
             </div>
 
             <!-- Waiting for Acknowledgments (shown when timer hasn't started) -->
-            <div class="row justify-content-center" id="waitingForAcknowledgments" style="{{ $timerStarted ? 'display: none;' : '' }}">
+            <div class="row justify-content-center" id="waitingForAcknowledgments"
+                style="{{ $timerStarted ? 'display: none;' : '' }}">
                 <div class="col-lg-8">
                     <div class="game-card animate-fade-in">
                         <div class="game-card-body text-center py-5">
@@ -285,7 +287,8 @@
                             </div>
 
                             <div class="d-flex justify-content-center align-items-center gap-2 mb-4">
-                                <span class="badge bg-primary fs-5 px-4 py-2" id="acknowledgedCountDisplay">{{ $acknowledgedCount }}</span>
+                                <span class="badge bg-primary fs-5 px-4 py-2"
+                                    id="acknowledgedCountDisplay">{{ $acknowledgedCount }}</span>
                                 <span class="text-muted-custom fs-5">/</span>
                                 <span class="badge bg-secondary fs-5 px-4 py-2">{{ $totalActivePlayers }}</span>
                                 <span class="text-muted-custom me-2">لاعب جاهز</span>
@@ -543,43 +546,48 @@
 
     <!-- Question Bank Instructions Modal -->
     @if($isQuestionBankPhase && !($hasAcknowledged ?? false))
-    <div class="modal fade" id="questionBankInstructionsModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="false" data-bs-keyboard="false">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header border-0 pb-0">
-                    <div class="text-center w-100">
-                        <i class="bi bi-journal-plus text-primary-custom" style="font-size: 4rem;"></i>
+        <div class="modal fade" id="questionBankInstructionsModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="false"
+            data-bs-keyboard="false">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header border-0 pb-0">
+                        <div class="text-center w-100">
+                            <i class="bi bi-journal-plus text-primary-custom" style="font-size: 4rem;"></i>
+                        </div>
                     </div>
-                </div>
-                <div class="modal-body text-center px-4 pb-4">
-                    <h4 class="fw-bold mb-4">فقرة كتابة الأسئلة</h4>
+                    <div class="modal-body text-center px-4 pb-4">
+                        <h4 class="fw-bold mb-4">فقرة كتابة الأسئلة</h4>
 
-                    <div class="instructions-text mb-4 p-4" style="background: rgba(201, 162, 39, 0.1); border-radius: var(--radius-lg); border: 1px solid rgba(201, 162, 39, 0.2);">
-                        <p class="fs-5 mb-3" style="line-height: 1.8;">
-                            الحين فقرة كتابة الأسئلة، قدامك <strong class="text-primary-custom">{{ $room->question_bank_duration ?? config('game.question_bank_timer', 60) }} ثانية</strong> لكتابة الأسئلة، كل سؤال تكتبه يزيد فرصك في تجميع النقاط!
-                        </p>
-                        <p class="fs-5 mb-0 text-warning">
-                            حاول ما تفضح نفسك بأسئلتك
-                            <i class="bi bi-emoji-wink me-2"></i>
-                        </p>
+                        <div class="instructions-text mb-4 p-4"
+                            style="background: rgba(201, 162, 39, 0.1); border-radius: var(--radius-lg); border: 1px solid rgba(201, 162, 39, 0.2);">
+                            <p class="fs-5 mb-3" style="line-height: 1.8;">
+                                الحين فقرة كتابة الأسئلة، قدامك <strong
+                                    class="text-primary-custom">{{ $room->question_bank_duration ?? config('game.question_bank_timer', 60) }}
+                                    ثانية</strong> لكتابة الأسئلة، كل سؤال تكتبه يزيد فرصك في تجميع النقاط!
+                            </p>
+                            <p class="fs-5 mb-0 text-warning">
+                                حاول ما تفضح نفسك بأسئلتك
+                                <i class="bi bi-emoji-wink me-2"></i>
+                            </p>
+                        </div>
+
+                        <div class="d-flex justify-content-center align-items-center gap-2 mb-4">
+                            <span class="text-muted-custom">في انتظار:</span>
+                            <span class="badge bg-primary fs-6 px-3 py-2"
+                                id="modalAcknowledgedCount">{{ $acknowledgedCount ?? 0 }}</span>
+                            <span class="text-muted-custom">/</span>
+                            <span class="badge bg-secondary fs-6 px-3 py-2">{{ $totalActivePlayers ?? 0 }}</span>
+                            <span class="text-muted-custom">لاعب</span>
+                        </div>
+
+                        <button type="button" class="btn-game btn-game-primary btn-game-lg w-100" id="acknowledgeBtn">
+                            <i class="bi bi-check-circle me-2"></i>
+                            فهمت، يلا نبدأ!
+                        </button>
                     </div>
-
-                    <div class="d-flex justify-content-center align-items-center gap-2 mb-4">
-                        <span class="text-muted-custom">في انتظار:</span>
-                        <span class="badge bg-primary fs-6 px-3 py-2" id="modalAcknowledgedCount">{{ $acknowledgedCount ?? 0 }}</span>
-                        <span class="text-muted-custom">/</span>
-                        <span class="badge bg-secondary fs-6 px-3 py-2">{{ $totalActivePlayers ?? 0 }}</span>
-                        <span class="text-muted-custom">لاعب</span>
-                    </div>
-
-                    <button type="button" class="btn-game btn-game-primary btn-game-lg w-100" id="acknowledgeBtn">
-                        <i class="bi bi-check-circle me-2"></i>
-                        فهمت، يلا نبدأ!
-                    </button>
                 </div>
             </div>
         </div>
-    </div>
     @endif
 
     <!-- Reveal Modal -->
@@ -889,7 +897,7 @@
             revealingPlayerId: {{ $room->revealing_player_id ?? 'null' }},
             timerStarted: {{ ($timerStarted ?? false) ? 'true' : 'false' }},
             hasAcknowledged: {{ ($hasAcknowledged ?? false) ? 'true' : 'false' }}
-        };
+                        };
         let isTyping = false;
         let revealTimerInterval = null;
         let countdownInterval = null;
@@ -939,77 +947,185 @@
             const qbTimerEl = document.getElementById('timerSeconds');
             const qbTimerContainer = document.getElementById('questionBankTimer');
 
-            // Show instructions modal if not acknowledged
-            @if(!($hasAcknowledged ?? false))
-            document.addEventListener('DOMContentLoaded', function() {
-                const instructionsModalEl = document.getElementById('questionBankInstructionsModal');
-                const instructionsModal = new bootstrap.Modal(instructionsModalEl);
-                const customBackdrop = document.getElementById('customModalBackdrop');
+            // Saved questions key
+            const SAVED_QUESTIONS_KEY = 'mulatham_saved_questions';
 
-                // Show custom backdrop when modal shows
-                customBackdrop.style.display = 'block';
-                instructionsModal.show();
-
-                // Hide custom backdrop when modal hides
-                instructionsModalEl.addEventListener('hidden.bs.modal', function() {
-                    customBackdrop.style.display = 'none';
-                    // Clean up any Bootstrap backdrops that might have leaked
-                    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-                });
-
-                // Handle acknowledge button
-                document.getElementById('acknowledgeBtn')?.addEventListener('click', async function() {
-                    const btn = this;
-                    btn.disabled = true;
-                    btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>جاري التحميل...';
-
+            // Function to import saved questions from localStorage
+            async function importSavedQuestions() {
+                const savedQuestionsJson = localStorage.getItem(SAVED_QUESTIONS_KEY);
+                if (!savedQuestionsJson) {
+                    console.log('No saved questions found in localStorage');
+                    return;
+                }
+                
+                let savedQuestions;
+                try {
+                    savedQuestions = JSON.parse(savedQuestionsJson);
+                } catch (e) {
+                    console.error('Error parsing saved questions:', e);
+                    localStorage.removeItem(SAVED_QUESTIONS_KEY);
+                    return;
+                }
+                
+                if (!savedQuestions || savedQuestions.length === 0) {
+                    console.log('Saved questions array is empty');
+                    return;
+                }
+                
+                console.log('Found', savedQuestions.length, 'saved questions to import');
+                
+                const initialCount = currentState.playerQuestionsCount;
+                let importedCount = 0;
+                
+                // Import each question one by one
+                for (const question of savedQuestions) {
+                    // Check if we've reached max questions
+                    if (currentState.playerQuestionsCount >= maxQuestionsPerPlayer) {
+                        console.log('Reached max questions limit, stopping import');
+                        break;
+                    }
+                    
                     try {
-                        const response = await fetch(`/room/${roomCode}/question-bank/acknowledge`, {
+                        const data = {
+                            question_text: question.question_text,
+                            question_type: question.question_type
+                        };
+                        
+                        if (question.question_type === 'choice') {
+                            data.choices = question.choices;
+                            data.correct_choice_index = question.correct_choice_index;
+                        } else {
+                            data.correct_answer = question.correct_answer;
+                        }
+                        
+                        console.log('Importing question:', question.question_text.substring(0, 50) + '...');
+                        
+                        const response = await fetch(`/room/${roomCode}/question-bank/add`, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                            }
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify(data)
                         });
-
-                        const data = await response.json();
-
-                        if (data.success) {
-                            currentState.hasAcknowledged = true;
-
-                            // Update modal counter
-                            const modalCount = document.getElementById('modalAcknowledgedCount');
-                            if (modalCount) modalCount.textContent = data.acknowledged_count;
-
-                            // Update waiting page counter
-                            const waitingCount = document.getElementById('acknowledgedCountDisplay');
-                            if (waitingCount) waitingCount.textContent = data.acknowledged_count;
-
-                            if (data.all_acknowledged && data.timer_started) {
-                                // All players ready, start the game!
-                                instructionsModal.hide();
-                                startQuestionBankTimer(data.remaining_time);
-                                showQuestionBankContent();
-                            } else {
-                                // Wait for others
-                                btn.innerHTML = '<i class="bi bi-check-circle me-2"></i>في انتظار اللاعبين...';
-                                btn.classList.remove('btn-game-primary');
-                                btn.classList.add('btn-game-secondary');
+                        
+                        const result = await response.json();
+                        console.log('Import result:', result);
+                        
+                        if (result.success) {
+                            importedCount++;
+                            currentState.playerQuestionsCount = result.player_questions_count;
+                            
+                            // Update UI
+                            const countEl = document.getElementById('playerQuestionsCount');
+                            if (countEl) countEl.textContent = result.player_questions_count;
+                            
+                            const totalEl = document.getElementById('totalQuestionsInBank');
+                            if (totalEl) totalEl.textContent = result.total_questions;
+                            
+                            // Check if auto-started
+                            if (result.auto_started) {
+                                console.log('Game auto-started after import');
+                                localStorage.removeItem(SAVED_QUESTIONS_KEY);
+                                window.location.reload();
+                                return;
                             }
+                        } else {
+                            console.error('Failed to import question:', result.error);
                         }
                     } catch (error) {
-                        console.error('Error acknowledging:', error);
-                        btn.disabled = false;
-                        btn.innerHTML = '<i class="bi bi-check-circle me-2"></i>فهمت، يلا نبدأ!';
+                        console.error('Error importing question:', error);
                     }
+                }
+                
+                // Clear saved questions after import attempt
+                localStorage.removeItem(SAVED_QUESTIONS_KEY);
+                console.log('Imported', importedCount, 'questions. Cleared saved questions from localStorage.');
+                
+                // Reload to show imported questions in UI only if we imported something new
+                if (importedCount > 0) {
+                    console.log('Reloading to show imported questions...');
+                    window.location.reload();
+                }
+            }
+
+            // Show instructions modal if not acknowledged
+            @if(!($hasAcknowledged ?? false))
+                document.addEventListener('DOMContentLoaded', function () {
+                    const instructionsModalEl = document.getElementById('questionBankInstructionsModal');
+                    const instructionsModal = new bootstrap.Modal(instructionsModalEl);
+                    const customBackdrop = document.getElementById('customModalBackdrop');
+
+                    // Show custom backdrop when modal shows
+                    customBackdrop.style.display = 'block';
+                    instructionsModal.show();
+
+                    // Hide custom backdrop when modal hides
+                    instructionsModalEl.addEventListener('hidden.bs.modal', function () {
+                        customBackdrop.style.display = 'none';
+                        // Clean up any Bootstrap backdrops that might have leaked
+                        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+                    });
+
+                    // Handle acknowledge button
+                    document.getElementById('acknowledgeBtn')?.addEventListener('click', async function () {
+                        const btn = this;
+                        btn.disabled = true;
+                        btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>جاري التحميل...';
+
+                        try {
+                            const response = await fetch(`/room/${roomCode}/question-bank/acknowledge`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                                }
+                            });
+
+                            const data = await response.json();
+
+                            if (data.success) {
+                                currentState.hasAcknowledged = true;
+
+                                // Update modal counter
+                                const modalCount = document.getElementById('modalAcknowledgedCount');
+                                if (modalCount) modalCount.textContent = data.acknowledged_count;
+
+                                // Update waiting page counter
+                                const waitingCount = document.getElementById('acknowledgedCountDisplay');
+                                if (waitingCount) waitingCount.textContent = data.acknowledged_count;
+
+                                if (data.all_acknowledged && data.timer_started) {
+                                    // All players ready, start the game!
+                                    instructionsModal.hide();
+                                    startQuestionBankTimer(data.remaining_time);
+                                    showQuestionBankContent();
+                                } else {
+                                    // Wait for others
+                                    btn.innerHTML = '<i class="bi bi-check-circle me-2"></i>في انتظار اللاعبين...';
+                                    btn.classList.remove('btn-game-primary');
+                                    btn.classList.add('btn-game-secondary');
+                                }
+                            }
+                        } catch (error) {
+                            console.error('Error acknowledging:', error);
+                            btn.disabled = false;
+                            btn.innerHTML = '<i class="bi bi-check-circle me-2"></i>فهمت، يلا نبدأ!';
+                        }
+                    });
                 });
-            });
             @endif
 
-            function showQuestionBankContent() {
-                document.getElementById('waitingForAcknowledgments').style.display = 'none';
-                document.getElementById('questionBankContent').style.display = 'block';
-            }
+                function showQuestionBankContent() {
+                    document.getElementById('waitingForAcknowledgments').style.display = 'none';
+                    document.getElementById('questionBankContent').style.display = 'block';
+
+                    // Import saved questions from previous game
+                    setTimeout(() => {
+                        importSavedQuestions();
+                    }, 500); // Small delay to ensure UI is ready
+                }
 
             function startQuestionBankTimer(initialTime) {
                 if (questionBankInterval) clearInterval(questionBankInterval);
@@ -1040,24 +1156,31 @@
 
             // Only start timer if already started (all acknowledged)
             @if($timerStarted ?? false)
-            questionBankInterval = setInterval(() => {
-                questionBankCountdown--;
-                if (qbTimerEl) qbTimerEl.textContent = questionBankCountdown;
+                questionBankInterval = setInterval(() => {
+                    questionBankCountdown--;
+                    if (qbTimerEl) qbTimerEl.textContent = questionBankCountdown;
 
-                if (questionBankCountdown <= 10 && questionBankCountdown > 5) {
-                    qbTimerContainer.classList.add('warning');
-                    qbTimerContainer.classList.remove('danger');
-                } else if (questionBankCountdown <= 5) {
-                    qbTimerContainer.classList.remove('warning');
-                    qbTimerContainer.classList.add('danger');
-                }
+                    if (questionBankCountdown <= 10 && questionBankCountdown > 5) {
+                        qbTimerContainer.classList.add('warning');
+                        qbTimerContainer.classList.remove('danger');
+                    } else if (questionBankCountdown <= 5) {
+                        qbTimerContainer.classList.remove('warning');
+                        qbTimerContainer.classList.add('danger');
+                    }
 
-                if (questionBankCountdown <= 0) {
-                    clearInterval(questionBankInterval);
-                    // Auto-end question bank phase
-                    endQuestionBankPhase();
-                }
-            }, 1000);
+                    if (questionBankCountdown <= 0) {
+                        clearInterval(questionBankInterval);
+                        // Auto-end question bank phase
+                        endQuestionBankPhase();
+                    }
+                }, 1000);
+
+                // Import saved questions if timer already started
+                document.addEventListener('DOMContentLoaded', function () {
+                    setTimeout(() => {
+                        importSavedQuestions();
+                    }, 500);
+                });
             @endif
 
             // Question type toggle
@@ -1160,16 +1283,16 @@
                                 item.className = 'question-item d-flex align-items-center justify-content-between p-3 mb-2';
                                 item.dataset.questionId = result.question_id;
                                 item.innerHTML = `
-                                    <div class="flex-fill">
-                                        <div class="fw-bold">${questionText}</div>
-                                        <small class="text-muted-custom">
-                                            ${questionType === 'choice' ? '<i class="bi bi-list-check me-1"></i>اختيار من متعدد' : '<i class="bi bi-fonts me-1"></i>إجابة نصية'}
-                                        </small>
-                                    </div>
-                                    <button type="button" class="btn-game btn-game-outline btn-game-sm delete-question-btn" data-question-id="${result.question_id}">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                `;
+                                                                    <div class="flex-fill">
+                                                                        <div class="fw-bold">${questionText}</div>
+                                                                        <small class="text-muted-custom">
+                                                                            ${questionType === 'choice' ? '<i class="bi bi-list-check me-1"></i>اختيار من متعدد' : '<i class="bi bi-fonts me-1"></i>إجابة نصية'}
+                                                                        </small>
+                                                                    </div>
+                                                                    <button type="button" class="btn-game btn-game-outline btn-game-sm delete-question-btn" data-question-id="${result.question_id}">
+                                                                        <i class="bi bi-trash"></i>
+                                                                    </button>
+                                                                `;
                                 list.appendChild(item);
                                 attachDeleteListeners();
                             } else {

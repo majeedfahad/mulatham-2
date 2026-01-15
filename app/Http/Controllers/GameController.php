@@ -1151,6 +1151,11 @@ class GameController extends Controller
             return redirect()->route('game.landing');
         }
 
+        // If room was reset for play again, redirect to lobby
+        if ($room->isInLobby()) {
+            return redirect()->route('game.lobby', $code);
+        }
+
         // Get all players with their correct answers count and successful reveals count
         $allPlayers = $room->players()
             ->withCount([
@@ -1194,6 +1199,12 @@ class GameController extends Controller
             ->orderBy('created_at')
             ->get();
 
+        // Get unused questions from this player (pending status = not used in game)
+        $unusedQuestions = $room->questions()
+            ->where('creator_id', $player->id)
+            ->where('status', 'pending')
+            ->get(['id', 'question_text', 'question_type', 'choices', 'correct_choice_index', 'correct_answer']);
+
         return view('game.results', [
             'room' => $room,
             'player' => $player,
@@ -1202,7 +1213,60 @@ class GameController extends Controller
             'revealedPlayers' => $revealedPlayers,
             'reveals' => $reveals,
             'winner' => $winner,
+            'unusedQuestions' => $unusedQuestions,
         ]);
+    }
+
+    /**
+     * Reset the room to play again with the same players
+     */
+    public function playAgain($code)
+    {
+        $room = Room::where('code', $code)->firstOrFail();
+        $player = $this->getCurrentPlayer($room);
+
+        if (! $player) {
+            return redirect()->route('game.landing');
+        }
+
+        // Only allow if game is finished
+        if (! $room->isFinished()) {
+            return back()->withErrors(['error' => 'اللعبة لم تنتهِ بعد']);
+        }
+
+        // Delete all questions and answers from the previous game
+        $room->questions()->each(function ($question) {
+            $question->answers()->delete();
+        });
+        $room->questions()->delete();
+
+        // Delete all reveals
+        $room->reveals()->delete();
+
+        // Reset all players
+        $room->players()->update([
+            'status' => 'waiting',
+            'score' => 0,
+        ]);
+
+        // Reset room state
+        $room->update([
+            'status' => 'lobby',
+            'phase' => null,
+            'current_question_index' => 0,
+            'question_bank_started_at' => null,
+            'question_bank_timer_started' => false,
+            'acknowledged_players' => [],
+            'revealing_player_id' => null,
+            'reveal_started_at' => null,
+        ]);
+
+        // Broadcast to all players that game is restarting
+        broadcast(new GameStateUpdated($room, 'game_restarted', [
+            'redirect_url' => route('game.lobby', $code),
+        ]));
+
+        return redirect()->route('game.lobby', $code);
     }
 
     /**

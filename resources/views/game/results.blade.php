@@ -186,10 +186,26 @@
 
         <!-- Actions -->
         <div class="text-center mt-5 animate-fade-in" style="animation-delay: 0.4s">
-            <a href="{{ route('game.landing') }}" class="btn-game btn-game-primary btn-game-lg">
-                <i class="bi bi-arrow-repeat"></i>
-                لعب مرة أخرى
-            </a>
+            @if($unusedQuestions->count() > 0)
+                <div class="game-alert game-alert-info mb-3 d-inline-block">
+                    <i class="bi bi-lightbulb"></i>
+                    <span>لديك {{ $unusedQuestions->count() }} أسئلة غير مستخدمة - ستُحفظ تلقائياً للعبة القادمة</span>
+                </div>
+            @endif
+            <div class="d-flex gap-3 justify-content-center flex-wrap">
+                <form action="{{ route('game.playAgain', $room->code) }}" method="POST" class="d-inline">
+                    @csrf
+                    <button type="submit" class="btn-game btn-game-primary btn-game-lg" id="playAgainBtn">
+                        <i class="bi bi-arrow-repeat"></i>
+                        العب مرة أخرى
+                    </button>
+                </form>
+                <a href="{{ route('game.landing') }}" class="btn-game btn-game-outline btn-game-lg"
+                    onclick="clearSavedQuestions()">
+                    <i class="bi bi-house"></i>
+                    الصفحة الرئيسية
+                </a>
+            </div>
         </div>
 
         <!-- Feedback Prompt -->
@@ -313,4 +329,45 @@
             background: transparent;
         }
     </style>
+@endpush
+
+@push('scripts')
+    <script>
+        const SAVED_QUESTIONS_KEY = 'mulatham_saved_questions';
+
+        // Save unused questions to localStorage on page load
+        document.addEventListener('DOMContentLoaded', function () {
+            const unusedQuestions = @json($unusedQuestions);
+
+            if (unusedQuestions && unusedQuestions.length > 0) {
+                // Save questions without the id (since it won't be valid in a new room)
+                const questionsToSave = unusedQuestions.map(q => ({
+                    question_text: q.question_text,
+                    question_type: q.question_type,
+                    choices: q.choices,
+                    correct_choice_index: q.correct_choice_index,
+                    correct_answer: q.correct_answer
+                }));
+
+                localStorage.setItem(SAVED_QUESTIONS_KEY, JSON.stringify(questionsToSave));
+                console.log('Saved', questionsToSave.length, 'questions to localStorage');
+            }
+
+            // Listen for game restart from another player
+            if (typeof Echo !== 'undefined') {
+                Echo.channel('room.{{ $room->code }}')
+                    .listen('.game.state-updated', (e) => {
+                        if (e.action === 'game_restarted' && e.data && e.data.redirect_url) {
+                            console.log('Game is restarting, redirecting to lobby...');
+                            window.location.href = e.data.redirect_url;
+                        }
+                    });
+            }
+        });
+
+        // Clear saved questions when going to home page
+        function clearSavedQuestions() {
+            localStorage.removeItem(SAVED_QUESTIONS_KEY);
+        }
+    </script>
 @endpush
