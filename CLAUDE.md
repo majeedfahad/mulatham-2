@@ -173,6 +173,17 @@ Only online players are counted when checking if all players answered, preventin
   - Suggestions by category chart
   - Link to Pulse dashboard
 
+### Telegram Notifications
+- Service: `App\Services\TelegramService`
+- Config: `config/telegram.php`
+- Notifications:
+  - Game started (automatic when a game begins)
+  - Daily report (scheduled at 11 PM Saudi time)
+  - Sentry error alerts (via webhook)
+- Webhook endpoint: `POST /webhooks/sentry` (for Sentry integration)
+- Commands:
+  - `php artisan telegram:daily-report` - Manually send daily stats
+
 ===
 
 <laravel-boost-guidelines>

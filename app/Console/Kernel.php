@@ -12,7 +12,8 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        // Send daily Telegram report at 11 PM (Saudi time is UTC+3)
+        $schedule->command('telegram:daily-report')->dailyAt('23:00')->timezone('Asia/Riyadh');
     }
 
     /**

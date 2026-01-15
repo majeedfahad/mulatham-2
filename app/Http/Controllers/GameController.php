@@ -2,15 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Room;
-use App\Models\RoomPlayer;
-use App\Models\RoomQuestion;
-use App\Models\RoomAnswer;
-use App\Models\Reveal;
 use App\Events\GameStateUpdated;
 use App\Events\PlayerUpdated;
+use App\Models\Reveal;
+use App\Models\Room;
+use App\Models\RoomAnswer;
+use App\Models\RoomPlayer;
+use App\Models\RoomQuestion;
+use App\Services\TelegramService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cookie;
 
 class GameController extends Controller
 {
@@ -71,11 +71,11 @@ class GameController extends Controller
 
         $room = Room::where('code', strtoupper($request->code))->first();
 
-        if (!$room) {
+        if (! $room) {
             return back()->withErrors(['code' => 'رمز الغرفة غير صحيح']);
         }
 
-        if (!$room->isInLobby()) {
+        if (! $room->isInLobby()) {
             return back()->withErrors(['code' => 'اللعبة بدأت بالفعل']);
         }
 
@@ -112,7 +112,7 @@ class GameController extends Controller
         $room = Room::where('code', $code)->first();
 
         // Room doesn't exist
-        if (!$room) {
+        if (! $room) {
             return redirect()->route('game.landing')
                 ->withErrors(['error' => 'الغرفة غير موجودة']);
         }
@@ -128,7 +128,7 @@ class GameController extends Controller
         $player = $this->getCurrentPlayer($room);
 
         // Player not in room - show join form if room is in lobby
-        if (!$player) {
+        if (! $player) {
             if ($room->isInLobby()) {
                 // Show join form directly on this page
                 return view('game.join-room', [
@@ -165,15 +165,16 @@ class GameController extends Controller
         $room = Room::where('code', $code)->firstOrFail();
         $player = $this->getCurrentPlayer($room);
 
-        if (!$player || !$room->isInLobby()) {
+        if (! $player || ! $room->isInLobby()) {
             if ($request->expectsJson()) {
                 return response()->json(['error' => 'Cannot toggle ready status'], 400);
             }
+
             return back();
         }
 
         $player->update([
-            'status' => $player->status === 'ready' ? 'waiting' : 'ready'
+            'status' => $player->status === 'ready' ? 'waiting' : 'ready',
         ]);
 
         // Broadcast player status changed
@@ -197,11 +198,11 @@ class GameController extends Controller
         $room = Room::where('code', $code)->firstOrFail();
         $player = $this->getCurrentPlayer($room);
 
-        if (!$player || !$player->isHost()) {
+        if (! $player || ! $player->isHost()) {
             return back()->withErrors(['error' => 'فقط المضيف يمكنه بدء اللعبة']);
         }
 
-        if (!$room->isInLobby()) {
+        if (! $room->isInLobby()) {
             return back();
         }
 
@@ -237,6 +238,14 @@ class GameController extends Controller
             'timer' => $duration,
         ]));
 
+        // Send Telegram notification
+        $activePlayers = $room->activePlayers()->get();
+        app(TelegramService::class)->notifyGameStarted(
+            $room->code,
+            $activePlayers->count(),
+            $activePlayers->pluck('name')->toArray()
+        );
+
         return redirect()->route('game.play', $code);
     }
 
@@ -248,7 +257,7 @@ class GameController extends Controller
         $room = Room::where('code', $code)->firstOrFail();
         $player = $this->getCurrentPlayer($room);
 
-        if (!$player) {
+        if (! $player) {
             return redirect()->route('game.landing');
         }
 
@@ -377,12 +386,12 @@ class GameController extends Controller
             $room = Room::where('code', $code)->firstOrFail();
             $player = $this->getCurrentPlayer($room);
 
-            if (!$player) {
+            if (! $player) {
                 return response()->json(['error' => 'لا يمكنك إرسال السؤال'], 403);
             }
 
             // Must be in question bank phase
-            if (!$room->isInQuestionBankPhase()) {
+            if (! $room->isInQuestionBankPhase()) {
                 return response()->json(['error' => 'انتهت مرحلة كتابة الأسئلة'], 400);
             }
 
@@ -433,9 +442,10 @@ class GameController extends Controller
                 'error' => $e->validator->errors()->first(),
             ], 422);
         } catch (\Exception $e) {
-            \Log::error('Question bank error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            \Log::error('Question bank error: '.$e->getMessage(), ['trace' => $e->getTraceAsString()]);
+
             return response()->json([
-                'error' => 'حدث خطأ: ' . $e->getMessage(),
+                'error' => 'حدث خطأ: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -448,17 +458,17 @@ class GameController extends Controller
         $room = Room::where('code', $code)->firstOrFail();
         $player = $this->getCurrentPlayer($room);
 
-        if (!$player) {
+        if (! $player) {
             return response()->json(['error' => 'غير مصرح'], 403);
         }
 
         // Must be in question bank phase
-        if (!$room->isInQuestionBankPhase()) {
+        if (! $room->isInQuestionBankPhase()) {
             return response()->json(['error' => 'اللعبة ليست في مرحلة كتابة الأسئلة'], 400);
         }
 
         // Only host can end manually, or timer must have expired
-        if (!$player->isHost() && !$room->hasQuestionBankTimerExpired()) {
+        if (! $player->isHost() && ! $room->hasQuestionBankTimerExpired()) {
             return response()->json(['error' => 'فقط المضيف يمكنه إنهاء المرحلة'], 403);
         }
 
@@ -471,7 +481,7 @@ class GameController extends Controller
         // Select first random question and start answering phase
         $firstQuestion = $room->getRandomPendingQuestion();
 
-        if (!$firstQuestion) {
+        if (! $firstQuestion) {
             return response()->json(['error' => 'لا توجد أسئلة متاحة'], 400);
         }
 
@@ -512,19 +522,19 @@ class GameController extends Controller
         $room = Room::where('code', $code)->firstOrFail();
         $player = $this->getCurrentPlayer($room);
 
-        if (!$player) {
+        if (! $player) {
             return response()->json(['error' => 'غير مصرح'], 403);
         }
 
         // Must be in question bank phase
-        if (!$room->isInQuestionBankPhase()) {
+        if (! $room->isInQuestionBankPhase()) {
             return response()->json(['error' => 'انتهت مرحلة كتابة الأسئلة'], 400);
         }
 
         // Find the question
         $question = RoomQuestion::find($questionId);
 
-        if (!$question || $question->room_id !== $room->id) {
+        if (! $question || $question->room_id !== $room->id) {
             return response()->json(['error' => 'السؤال غير موجود'], 404);
         }
 
@@ -554,14 +564,14 @@ class GameController extends Controller
         $room = Room::where('code', $code)->firstOrFail();
         $player = $this->getCurrentPlayer($room);
 
-        if (!$player || !$player->canAnswer()) {
+        if (! $player || ! $player->canAnswer()) {
             return back()->withErrors(['error' => 'لا يمكنك الإجابة']);
         }
 
         // Get the current question
         $currentQuestion = $room->currentQuestion()->first();
 
-        if (!$currentQuestion || !$currentQuestion->isAnswering()) {
+        if (! $currentQuestion || ! $currentQuestion->isAnswering()) {
             return back();
         }
 
@@ -659,13 +669,13 @@ class GameController extends Controller
         $room = Room::where('code', $code)->firstOrFail();
         $player = $this->getCurrentPlayer($room);
 
-        if (!$player || !$player->canReveal()) {
+        if (! $player || ! $player->canReveal()) {
             return back()->withErrors(['error' => 'لا يمكنك الكشف الآن']);
         }
 
         $currentQuestion = $room->currentQuestion()->first();
 
-        if (!$currentQuestion || !$currentQuestion->isRevealing()) {
+        if (! $currentQuestion || ! $currentQuestion->isRevealing()) {
             return back()->withErrors(['error' => 'لا يمكنك الكشف الآن']);
         }
 
@@ -695,7 +705,7 @@ class GameController extends Controller
             'target_fake_name' => $target->fake_name,
             'target_real_name' => $target->name,
             'guessed_name' => $guessedPlayer->name,
-            'guesser_eliminated' => !$reveal->is_correct,
+            'guesser_eliminated' => ! $reveal->is_correct,
             'target_revealed' => $reveal->is_correct,
         ]));
 
@@ -726,7 +736,7 @@ class GameController extends Controller
         $room = Room::where('code', $code)->firstOrFail();
         $player = $this->getCurrentPlayer($room);
 
-        if (!$player || !$player->isHost()) {
+        if (! $player || ! $player->isHost()) {
             return back();
         }
 
@@ -760,6 +770,7 @@ class GameController extends Controller
             broadcast(new GameStateUpdated($room, 'game_ended', [
                 'redirect_url' => route('game.results', $room->code),
             ]));
+
             return 'finished';
         }
 
@@ -776,19 +787,21 @@ class GameController extends Controller
             broadcast(new GameStateUpdated($room, 'game_ended', [
                 'redirect_url' => route('game.results', $room->code),
             ]));
+
             return 'finished';
         }
 
         // Get next question from the question bank
         $nextQuestion = $room->getRandomPendingQuestion();
 
-        if (!$nextQuestion) {
+        if (! $nextQuestion) {
             // No more questions in the bank
             $room->update(['status' => 'finished', 'phase' => null]);
             // Broadcast game ended to all players
             broadcast(new GameStateUpdated($room, 'game_ended', [
                 'redirect_url' => route('game.results', $room->code),
             ]));
+
             return 'finished';
         }
 
@@ -825,7 +838,7 @@ class GameController extends Controller
         $room = Room::where('code', $code)->firstOrFail();
         $player = $this->getCurrentPlayer($room);
 
-        if (!$player || !$player->isHost()) {
+        if (! $player || ! $player->isHost()) {
             return back();
         }
 
@@ -846,7 +859,7 @@ class GameController extends Controller
     {
         $room = Room::where('code', $code)->first();
 
-        if (!$room) {
+        if (! $room) {
             return response()->json(['error' => 'Room not found'], 404);
         }
 
@@ -900,14 +913,14 @@ class GameController extends Controller
         $room = Room::where('code', $code)->firstOrFail();
         $player = $this->getCurrentPlayer($room);
 
-        if (!$player || !$player->canReveal()) {
+        if (! $player || ! $player->canReveal()) {
             return response()->json(['error' => 'لا يمكنك الكشف'], 403);
         }
 
         // Check if the current question is still in revealing phase
         $currentQuestion = $room->currentQuestion()->first();
 
-        if (!$currentQuestion || !$currentQuestion->isRevealing()) {
+        if (! $currentQuestion || ! $currentQuestion->isRevealing()) {
             return response()->json(['error' => 'انتهت مرحلة الكشف'], 410);
         }
 
@@ -969,7 +982,7 @@ class GameController extends Controller
         $room = Room::where('code', $code)->firstOrFail();
         $player = $this->getCurrentPlayer($room);
 
-        if (!$player || $room->revealing_player_id !== $player->id) {
+        if (! $player || $room->revealing_player_id !== $player->id) {
             return back();
         }
 
@@ -1010,7 +1023,7 @@ class GameController extends Controller
         $room = Room::where('code', $code)->firstOrFail();
         $player = $this->getCurrentPlayer($room);
 
-        if (!$player) {
+        if (! $player) {
             return redirect()->route('game.landing');
         }
 
@@ -1128,7 +1141,7 @@ class GameController extends Controller
     {
         $token = session('player_token');
 
-        if (!$token || !$room) {
+        if (! $token || ! $room) {
             return null;
         }
 
@@ -1143,7 +1156,7 @@ class GameController extends Controller
         $room = Room::where('code', $code)->first();
         $player = $this->getCurrentPlayer($room);
 
-        if (!$player) {
+        if (! $player) {
             return response()->json(['success' => false], 401);
         }
 
@@ -1230,13 +1243,13 @@ class GameController extends Controller
         $room = Room::where('code', $code)->first();
         $currentPlayer = $this->getCurrentPlayer($room);
 
-        if (!$currentPlayer || !$currentPlayer->isHost()) {
+        if (! $currentPlayer || ! $currentPlayer->isHost()) {
             return response()->json(['success' => false, 'message' => 'غير مصرح'], 403);
         }
 
         $playerToKick = $room->players()->find($playerId);
 
-        if (!$playerToKick) {
+        if (! $playerToKick) {
             return response()->json(['success' => false, 'message' => 'اللاعب غير موجود'], 404);
         }
 

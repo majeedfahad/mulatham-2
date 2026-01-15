@@ -1,9 +1,10 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\GameController;
-use App\Http\Controllers\SettingController;
 use App\Http\Controllers\QuestionController;
+use App\Http\Controllers\SettingController;
+use App\Http\Controllers\WebhookController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -71,6 +72,12 @@ Route::prefix('suggestions')->name('suggestions.')->group(function () {
 Route::post('/room/{code}/heartbeat', [GameController::class, 'heartbeat'])->name('game.heartbeat');
 Route::post('/room/{code}/kick/{playerId}', [GameController::class, 'kickPlayer'])->name('game.kick');
 
+// =====================================================
+// WEBHOOKS
+// =====================================================
+Route::prefix('webhooks')->name('webhooks.')->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])->group(function () {
+    Route::post('/sentry', [WebhookController::class, 'sentry'])->name('sentry');
+});
 
 // =====================================================
 // LEGACY ROUTES (keeping for reference, can be removed)
