@@ -16,6 +16,7 @@ class Room extends Model
         'phase',
         'question_bank_started_at',
         'question_bank_duration',
+        'max_questions_per_player',
         'acknowledged_players',
         'question_bank_timer_started',
         'max_questions',
@@ -28,6 +29,7 @@ class Room extends Model
     protected $casts = [
         'max_questions' => 'integer',
         'question_bank_duration' => 'integer',
+        'max_questions_per_player' => 'integer',
         'acknowledged_players' => 'array',
         'question_bank_timer_started' => 'boolean',
         'min_players_to_end' => 'integer',

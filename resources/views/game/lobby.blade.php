@@ -123,6 +123,8 @@
                     @csrf
                     <input type="hidden" name="question_bank_duration" id="questionBankDuration"
                         value="{{ $room->question_bank_duration ?? 60 }}">
+                    <input type="hidden" name="max_questions_per_player" id="maxQuestionsPerPlayer"
+                        value="{{ $room->max_questions_per_player ?? 5 }}">
                     <button type="submit" class="btn-game btn-game-primary" id="startGameBtn" @if($players->where('status', 'ready')->count() < config('game.min_players', 3)) disabled @endif>
                         <i class="bi bi-play-circle"></i> ابدأ اللعبة
                     </button>
@@ -142,6 +144,20 @@
                             class="timer-btn {{ ($room->question_bank_duration ?? 60) == $duration ? 'active' : '' }}"
                             data-duration="{{ $duration }}" onclick="selectTimer({{ $duration }})">
                             {{ $duration }} ث
+                        </button>
+                    @endforeach
+                </div>
+            </div>
+            <div class="text-center mt-3 animate-fade-in">
+                <small class="text-muted-custom d-block mb-2">
+                    <i class="bi bi-question-circle"></i> عدد الأسئلة لكل لاعب
+                </small>
+                <div class="questions-selector d-flex flex-wrap justify-content-center gap-2">
+                    @foreach([1, 2, 3, 4, 5] as $count)
+                        <button type="button"
+                            class="timer-btn {{ ($room->max_questions_per_player ?? 5) == $count ? 'active' : '' }}"
+                            data-count="{{ $count }}" onclick="selectMaxQuestions({{ $count }})">
+                            {{ $count }}
                         </button>
                     @endforeach
                 </div>
@@ -710,9 +726,26 @@
             }
 
             // Update button states
-            document.querySelectorAll('.timer-btn').forEach(btn => {
+            document.querySelectorAll('.timer-selector .timer-btn').forEach(btn => {
                 btn.classList.remove('active');
                 if (parseInt(btn.dataset.duration) === duration) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+
+        // Max questions selection (host only)
+        function selectMaxQuestions(count) {
+            // Update hidden input
+            const countInput = document.getElementById('maxQuestionsPerPlayer');
+            if (countInput) {
+                countInput.value = count;
+            }
+
+            // Update button states
+            document.querySelectorAll('.questions-selector .timer-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (parseInt(btn.dataset.count) === count) {
                     btn.classList.add('active');
                 }
             });
@@ -885,15 +918,15 @@
                     const onlineClass = p.is_online !== false ? 'online' : 'offline';
                     const showKickBtn = isHost && !isYou && !p.is_host;
                     html += `
-                                            <div class="player-chip ${statusClass} ${youClass}" data-player-id="${p.id}">
-                                                <span class="online-indicator ${onlineClass}"></span>
-                                                <span class="avatar">${p.name.charAt(0)}</span>
-                                                <span class="name">${p.name}</span>
-                                                ${p.is_host ? '<i class="bi bi-star-fill text-warning"></i>' : ''}
-                                                ${p.status === 'ready' ? '<i class="bi bi-check-circle-fill text-success"></i>' : ''}
-                                                ${showKickBtn ? `<button type="button" class="kick-btn" onclick="kickPlayer(${p.id})" title="طرد اللاعب"><i class="bi bi-x-lg"></i></button>` : ''}
-                                            </div>
-                                        `;
+                                                    <div class="player-chip ${statusClass} ${youClass}" data-player-id="${p.id}">
+                                                        <span class="online-indicator ${onlineClass}"></span>
+                                                        <span class="avatar">${p.name.charAt(0)}</span>
+                                                        <span class="name">${p.name}</span>
+                                                        ${p.is_host ? '<i class="bi bi-star-fill text-warning"></i>' : ''}
+                                                        ${p.status === 'ready' ? '<i class="bi bi-check-circle-fill text-success"></i>' : ''}
+                                                        ${showKickBtn ? `<button type="button" class="kick-btn" onclick="kickPlayer(${p.id})" title="طرد اللاعب"><i class="bi bi-x-lg"></i></button>` : ''}
+                                                    </div>
+                                                `;
                 });
                 playersContainer.innerHTML = html;
             }
@@ -907,10 +940,10 @@
             const headerCounts = document.querySelector('.game-card-header .small');
             if (headerCounts) {
                 headerCounts.innerHTML = `
-                                        <span class="text-success">${readyCount} جاهز</span>
-                                        /
-                                        <span class="text-muted">${waitingCount} ينتظر</span>
-                                    `;
+                                                <span class="text-success">${readyCount} جاهز</span>
+                                                /
+                                                <span class="text-muted">${waitingCount} ينتظر</span>
+                                            `;
             }
 
             // Update minimum players message
@@ -920,10 +953,10 @@
             if (playerCount < minPlayers) {
                 if (!minMsg && cardBody) {
                     cardBody.insertAdjacentHTML('beforeend', `
-                                            <div class="text-center text-muted-custom small mt-2">
-                                                <i class="bi bi-info-circle"></i> يلزم ${minPlayers} لاعبين على الأقل
-                                            </div>
-                                        `);
+                                                    <div class="text-center text-muted-custom small mt-2">
+                                                        <i class="bi bi-info-circle"></i> يلزم ${minPlayers} لاعبين على الأقل
+                                                    </div>
+                                                `);
                 }
             } else if (minMsg) {
                 minMsg.remove();

@@ -216,6 +216,10 @@ class GameController extends Controller
         $duration = $request->input('question_bank_duration', 60);
         $duration = max(30, min(180, (int) $duration)); // Clamp between 30 and 180
 
+        // Get max questions per player from host (1-5)
+        $maxQuestionsPerPlayer = $request->input('max_questions_per_player', 5);
+        $maxQuestionsPerPlayer = max(1, min(5, (int) $maxQuestionsPerPlayer)); // Clamp between 1 and 5
+
         // Activate all ready players
         $room->players()->where('status', 'ready')->update(['status' => 'active']);
 
@@ -229,6 +233,7 @@ class GameController extends Controller
             'phase' => 'question_bank',
             'question_bank_started_at' => null,
             'question_bank_duration' => $duration,
+            'max_questions_per_player' => $maxQuestionsPerPlayer,
             'question_bank_timer_started' => false,
             'acknowledged_players' => [],
             'current_question_index' => 0, // Will be set to 1 when first question is selected
@@ -280,7 +285,7 @@ class GameController extends Controller
                 ->where('status', 'pending')
                 ->get();
 
-            $maxQuestionsPerPlayer = config('game.max_questions_per_player', 5);
+            $maxQuestionsPerPlayer = $room->max_questions_per_player ?? config('game.max_questions_per_player', 5);
             $remainingTime = $room->getQuestionBankRemainingTime();
             $totalQuestionsInBank = $room->getQuestionBankCount();
 
@@ -409,8 +414,8 @@ class GameController extends Controller
                 return response()->json(['error' => 'انتهت مرحلة كتابة الأسئلة'], 400);
             }
 
-            // Check if player hasn't exceeded max questions
-            $maxQuestionsPerPlayer = config('game.max_questions_per_player', 5);
+            // Check if player hasn't exceeded max questions (use room setting)
+            $maxQuestionsPerPlayer = $room->max_questions_per_player ?? config('game.max_questions_per_player', 5);
             $playerQuestionsCount = $room->questions()
                 ->where('creator_id', $player->id)
                 ->where('status', 'pending')
@@ -438,17 +443,66 @@ class GameController extends Controller
 
             $question = RoomQuestion::create($questionData);
 
+            // Get updated counts
+            $newPlayerQuestionsCount = $playerQuestionsCount + 1;
+            $totalQuestionsInBank = $room->getQuestionBankCount();
+            $activePlayersCount = $room->activePlayers()->count();
+            $targetQuestions = $activePlayersCount * $maxQuestionsPerPlayer;
+
+            // Check if all players have reached their max questions - auto-start the game
+            if ($totalQuestionsInBank >= $targetQuestions) {
+                // Select first random question and start answering phase
+                $firstQuestion = $room->getRandomPendingQuestion();
+
+                if ($firstQuestion) {
+                    // Update question status and order
+                    $firstQuestion->update([
+                        'status' => 'answering',
+                        'question_order' => 1,
+                    ]);
+
+                    // Update room phase to answering
+                    $room->update([
+                        'phase' => 'answering',
+                        'current_question_index' => 1,
+                    ]);
+
+                    // Broadcast phase change to all players
+                    broadcast(new GameStateUpdated($room, 'question_bank_ended', [
+                        'phase' => 'answering',
+                        'question_text' => $firstQuestion->question_text,
+                        'question_type' => $firstQuestion->question_type,
+                        'choices' => $firstQuestion->choices,
+                        'creator_fake_name' => $firstQuestion->creator ? $firstQuestion->creator->fake_name : null,
+                        'current_question_number' => 1,
+                        'total_questions' => $totalQuestionsInBank,
+                        'auto_started' => true,
+                    ]));
+
+                    return response()->json([
+                        'success' => true,
+                        'question_id' => $question->id,
+                        'player_questions_count' => $newPlayerQuestionsCount,
+                        'total_questions' => $totalQuestionsInBank,
+                        'auto_started' => true,
+                        'phase' => 'answering',
+                    ]);
+                }
+            }
+
             // Broadcast question bank update
             broadcast(new GameStateUpdated($room, 'question_bank_updated', [
-                'total_questions' => $room->getQuestionBankCount(),
-                'player_questions_count' => $playerQuestionsCount + 1,
+                'total_questions' => $totalQuestionsInBank,
+                'player_questions_count' => $newPlayerQuestionsCount,
+                'target_questions' => $targetQuestions,
             ]))->toOthers();
 
             return response()->json([
                 'success' => true,
                 'question_id' => $question->id,
-                'player_questions_count' => $playerQuestionsCount + 1,
-                'total_questions' => $room->getQuestionBankCount(),
+                'player_questions_count' => $newPlayerQuestionsCount,
+                'total_questions' => $totalQuestionsInBank,
+                'target_questions' => $targetQuestions,
             ]);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
