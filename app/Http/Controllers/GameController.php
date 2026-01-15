@@ -588,8 +588,7 @@ class GameController extends Controller
 
         // Check if all players have answered
         if ($currentQuestion->allPlayersAnswered()) {
-            // Incentive Shift: Award creator points only if question had mixed results
-            // (at least 1 correct AND at least 1 wrong - excluding creator's own answer)
+            // Award creator points for wrong answers (from other players)
             $otherPlayersAnswers = $currentQuestion->answers()
                 ->where('room_player_id', '!=', $currentQuestion->creator_id)
                 ->get();
@@ -597,10 +596,17 @@ class GameController extends Controller
             $correctAnswers = $otherPlayersAnswers->where('is_correct', true)->count();
             $wrongAnswers = $otherPlayersAnswers->where('is_correct', false)->count();
 
-            // Only award points if there's a mix (not all correct, not all wrong)
-            // This prevents trivial questions (all correct) and unfair questions (all wrong)
-            if ($wrongAnswers > 0 && $correctAnswers > 0 && $currentQuestion->creator) {
-                $currentQuestion->creator->addPoints($wrongAnswers);
+            // Scoring logic depends on question type:
+            // - Multiple choice: +1 point per wrong answer (always)
+            // - Text questions: +1 point per wrong answer only if there's a mix (some correct, some wrong)
+            if ($wrongAnswers > 0 && $currentQuestion->creator) {
+                if ($currentQuestion->question_type === 'choice') {
+                    // Multiple choice: always award points for wrong answers
+                    $currentQuestion->creator->addPoints($wrongAnswers);
+                } elseif ($correctAnswers > 0) {
+                    // Text questions: only award if there's at least one correct answer (mixed results)
+                    $currentQuestion->creator->addPoints($wrongAnswers);
+                }
             }
 
             $currentQuestion->startRevealing();
@@ -629,10 +635,12 @@ class GameController extends Controller
                 'correct_answer' => $currentQuestion->getCorrectAnswer(),
             ]));
         } else {
-            // Broadcast answer submitted (for progress tracking)
+            // Broadcast answer submitted (for progress tracking) - send to ALL players
+            $onlinePlayersCount = $room->activePlayers()->count();
             broadcast(new GameStateUpdated($room, 'answer_submitted', [
                 'answers_count' => $currentQuestion->answers()->count(),
-            ]))->toOthers();
+                'total_players' => $onlinePlayersCount,
+            ]));
         }
 
         return back();
@@ -1180,18 +1188,26 @@ class GameController extends Controller
      */
     private function transitionToRevealPhase(Room $room, $currentQuestion): void
     {
-        // Incentive Shift: Award creator points only if question had mixed results
+        // Award creator points for wrong answers (from other players)
         $otherPlayersAnswers = $currentQuestion->answers()
             ->where('room_player_id', '!=', $currentQuestion->creator_id)
             ->get();
 
         if ($otherPlayersAnswers->count() > 0) {
-            $hasCorrect = $otherPlayersAnswers->where('is_correct', true)->count() > 0;
-            $hasWrong = $otherPlayersAnswers->where('is_correct', false)->count() > 0;
+            $correctCount = $otherPlayersAnswers->where('is_correct', true)->count();
+            $wrongCount = $otherPlayersAnswers->where('is_correct', false)->count();
 
-            if ($hasCorrect && $hasWrong && $currentQuestion->creator_id) {
-                $wrongCount = $otherPlayersAnswers->where('is_correct', false)->count();
-                $currentQuestion->creator->addPoints($wrongCount);
+            // Scoring logic depends on question type:
+            // - Multiple choice: +1 point per wrong answer (always)
+            // - Text questions: +1 point per wrong answer only if there's a mix
+            if ($wrongCount > 0 && $currentQuestion->creator_id) {
+                if ($currentQuestion->question_type === 'choice') {
+                    // Multiple choice: always award points for wrong answers
+                    $currentQuestion->creator->addPoints($wrongCount);
+                } elseif ($correctCount > 0) {
+                    // Text questions: only award if there's at least one correct answer (mixed results)
+                    $currentQuestion->creator->addPoints($wrongCount);
+                }
             }
         }
 
