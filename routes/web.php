@@ -39,6 +39,7 @@ Route::get('/room/{code}/play', [GameController::class, 'play'])->name('game.pla
 Route::get('/room/{code}/state', [GameController::class, 'getState'])->name('game.state');
 
 // Question Bank Phase
+Route::post('/room/{code}/question-bank/acknowledge', [GameController::class, 'acknowledgeQuestionBank'])->name('game.questionBank.acknowledge');
 Route::post('/room/{code}/question-bank/add', [GameController::class, 'submitQuestionToBank'])->name('game.questionBank.add');
 Route::delete('/room/{code}/question-bank/{questionId}', [GameController::class, 'deleteQuestionFromBank'])->name('game.questionBank.delete');
 Route::post('/room/{code}/question-bank/end', [GameController::class, 'endQuestionBankPhase'])->name('game.questionBank.end');

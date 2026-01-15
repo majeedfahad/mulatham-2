@@ -16,6 +16,8 @@ class Room extends Model
         'phase',
         'question_bank_started_at',
         'question_bank_duration',
+        'acknowledged_players',
+        'question_bank_timer_started',
         'max_questions',
         'min_players_to_end',
         'current_question_index',
@@ -26,6 +28,8 @@ class Room extends Model
     protected $casts = [
         'max_questions' => 'integer',
         'question_bank_duration' => 'integer',
+        'acknowledged_players' => 'array',
+        'question_bank_timer_started' => 'boolean',
         'min_players_to_end' => 'integer',
         'current_question_index' => 'integer',
         'reveal_started_at' => 'datetime',
@@ -235,7 +239,8 @@ class Room extends Model
     {
         $total = $this->question_bank_duration ?? config('game.question_bank_timer', 60);
 
-        if (!$this->question_bank_started_at) {
+        // If timer hasn't started yet (waiting for acknowledgments), return full time
+        if (! $this->question_bank_timer_started || ! $this->question_bank_started_at) {
             return $total;
         }
 
@@ -243,6 +248,73 @@ class Room extends Model
         $remaining = $total - $elapsed;
 
         return max(0, $remaining);
+    }
+
+    /**
+     * Check if a player has acknowledged the question bank phase
+     */
+    public function hasPlayerAcknowledged(int $playerId): bool
+    {
+        $acknowledged = $this->acknowledged_players ?? [];
+
+        return in_array($playerId, $acknowledged);
+    }
+
+    /**
+     * Add a player to the acknowledged list
+     */
+    public function acknowledgePlayer(int $playerId): void
+    {
+        $acknowledged = $this->acknowledged_players ?? [];
+
+        if (! in_array($playerId, $acknowledged)) {
+            $acknowledged[] = $playerId;
+            $this->update(['acknowledged_players' => $acknowledged]);
+        }
+    }
+
+    /**
+     * Check if all active players have acknowledged
+     */
+    public function allPlayersAcknowledged(): bool
+    {
+        $activePlayerIds = $this->activePlayers()->pluck('id')->toArray();
+        $acknowledged = $this->acknowledged_players ?? [];
+
+        foreach ($activePlayerIds as $playerId) {
+            if (! in_array($playerId, $acknowledged)) {
+                return false;
+            }
+        }
+
+        return count($activePlayerIds) > 0;
+    }
+
+    /**
+     * Get acknowledged players count
+     */
+    public function getAcknowledgedCount(): int
+    {
+        return count($this->acknowledged_players ?? []);
+    }
+
+    /**
+     * Start the question bank timer (after all players acknowledged)
+     */
+    public function startQuestionBankTimer(): void
+    {
+        $this->update([
+            'question_bank_started_at' => now(),
+            'question_bank_timer_started' => true,
+        ]);
+    }
+
+    /**
+     * Check if question bank timer has started
+     */
+    public function hasQuestionBankTimerStarted(): bool
+    {
+        return $this->question_bank_timer_started ?? false;
     }
 
     /**

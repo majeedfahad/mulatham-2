@@ -76,7 +76,7 @@
 
         @if($isQuestionBankPhase)
             <!-- Question Bank Phase - All Players Write Questions at Start -->
-            <div class="row justify-content-center">
+            <div class="row justify-content-center" id="questionBankContent" style="{{ !$timerStarted ? 'display: none;' : '' }}">
                 <div class="col-lg-10">
                     <div class="game-card animate-fade-in">
                         <div class="game-card-body">
@@ -267,6 +267,40 @@
                                         @endif
                                     </small>
                                 </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Waiting for Acknowledgments (shown when timer hasn't started) -->
+            <div class="row justify-content-center" id="waitingForAcknowledgments" style="{{ $timerStarted ? 'display: none;' : '' }}">
+                <div class="col-lg-8">
+                    <div class="game-card animate-fade-in">
+                        <div class="game-card-body text-center py-5">
+                            <div class="mb-4">
+                                <i class="bi bi-hourglass-split text-primary-custom fs-1 d-block mb-3 animate-pulse"></i>
+                                <h4 class="fw-bold mb-2">في انتظار اللاعبين...</h4>
+                                <p class="text-muted-custom">يجب على جميع اللاعبين قراءة التعليمات والموافقة للبدء</p>
+                            </div>
+
+                            <div class="d-flex justify-content-center align-items-center gap-2 mb-4">
+                                <span class="badge bg-primary fs-5 px-4 py-2" id="acknowledgedCountDisplay">{{ $acknowledgedCount }}</span>
+                                <span class="text-muted-custom fs-5">/</span>
+                                <span class="badge bg-secondary fs-5 px-4 py-2">{{ $totalActivePlayers }}</span>
+                                <span class="text-muted-custom me-2">لاعب جاهز</span>
+                            </div>
+
+                            @if(!$hasAcknowledged)
+                                <p class="text-warning mb-0">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                    اضغط "فهمت" في النافذة المنبثقة للمتابعة
+                                </p>
+                            @else
+                                <p class="text-success mb-0">
+                                    <i class="bi bi-check-circle me-1"></i>
+                                    أنت جاهز! في انتظار بقية اللاعبين...
+                                </p>
                             @endif
                         </div>
                     </div>
@@ -506,6 +540,47 @@
 
     <!-- Custom Modal Backdrop -->
     <div id="customModalBackdrop" class="custom-modal-backdrop" style="display: none;"></div>
+
+    <!-- Question Bank Instructions Modal -->
+    @if($isQuestionBankPhase && !($hasAcknowledged ?? false))
+    <div class="modal fade" id="questionBankInstructionsModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="false" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <div class="text-center w-100">
+                        <i class="bi bi-journal-plus text-primary-custom" style="font-size: 4rem;"></i>
+                    </div>
+                </div>
+                <div class="modal-body text-center px-4 pb-4">
+                    <h4 class="fw-bold mb-4">فقرة كتابة الأسئلة</h4>
+
+                    <div class="instructions-text mb-4 p-4" style="background: rgba(201, 162, 39, 0.1); border-radius: var(--radius-lg); border: 1px solid rgba(201, 162, 39, 0.2);">
+                        <p class="fs-5 mb-3" style="line-height: 1.8;">
+                            الحين فقرة كتابة الأسئلة، قدامك <strong class="text-primary-custom">{{ $room->question_bank_duration ?? config('game.question_bank_timer', 60) }} ثانية</strong> لكتابة الأسئلة، كل سؤال تكتبه يزيد فرصك في تجميع النقاط!
+                        </p>
+                        <p class="fs-5 mb-0 text-warning">
+                            حاول ما تفضح نفسك بأسئلتك
+                            <i class="bi bi-emoji-wink me-2"></i>
+                        </p>
+                    </div>
+
+                    <div class="d-flex justify-content-center align-items-center gap-2 mb-4">
+                        <span class="text-muted-custom">في انتظار:</span>
+                        <span class="badge bg-primary fs-6 px-3 py-2" id="modalAcknowledgedCount">{{ $acknowledgedCount ?? 0 }}</span>
+                        <span class="text-muted-custom">/</span>
+                        <span class="badge bg-secondary fs-6 px-3 py-2">{{ $totalActivePlayers ?? 0 }}</span>
+                        <span class="text-muted-custom">لاعب</span>
+                    </div>
+
+                    <button type="button" class="btn-game btn-game-primary btn-game-lg w-100" id="acknowledgeBtn">
+                        <i class="bi bi-check-circle me-2"></i>
+                        فهمت، يلا نبدأ!
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 
     <!-- Reveal Modal -->
     <div class="modal fade" id="revealModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="false"
@@ -811,12 +886,15 @@
             questionIndex: {{ $currentQuestionNumber ?? 0 }},
             phase: '{{ $isQuestionBankPhase ? "question_bank" : ($currentQuestion ? $currentQuestion->status : "waiting") }}',
             playerQuestionsCount: {{ $playerQuestionsCount ?? 0 }},
-            revealingPlayerId: {{ $room->revealing_player_id ?? 'null' }}
+            revealingPlayerId: {{ $room->revealing_player_id ?? 'null' }},
+            timerStarted: {{ ($timerStarted ?? false) ? 'true' : 'false' }},
+            hasAcknowledged: {{ ($hasAcknowledged ?? false) ? 'true' : 'false' }}
         };
         let isTyping = false;
         let revealTimerInterval = null;
         let countdownInterval = null;
         let isInRevealMode = false;
+        let questionBankInterval = null;
 
         // Heartbeat - ping server every 10 seconds to stay "online"
         async function sendHeartbeat() {
@@ -861,7 +939,108 @@
             const qbTimerEl = document.getElementById('timerSeconds');
             const qbTimerContainer = document.getElementById('questionBankTimer');
 
-            const questionBankInterval = setInterval(() => {
+            // Show instructions modal if not acknowledged
+            @if(!($hasAcknowledged ?? false))
+            document.addEventListener('DOMContentLoaded', function() {
+                const instructionsModalEl = document.getElementById('questionBankInstructionsModal');
+                const instructionsModal = new bootstrap.Modal(instructionsModalEl);
+                const customBackdrop = document.getElementById('customModalBackdrop');
+
+                // Show custom backdrop when modal shows
+                customBackdrop.style.display = 'block';
+                instructionsModal.show();
+
+                // Hide custom backdrop when modal hides
+                instructionsModalEl.addEventListener('hidden.bs.modal', function() {
+                    customBackdrop.style.display = 'none';
+                    // Clean up any Bootstrap backdrops that might have leaked
+                    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+                });
+
+                // Handle acknowledge button
+                document.getElementById('acknowledgeBtn')?.addEventListener('click', async function() {
+                    const btn = this;
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>جاري التحميل...';
+
+                    try {
+                        const response = await fetch(`/room/${roomCode}/question-bank/acknowledge`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            }
+                        });
+
+                        const data = await response.json();
+
+                        if (data.success) {
+                            currentState.hasAcknowledged = true;
+
+                            // Update modal counter
+                            const modalCount = document.getElementById('modalAcknowledgedCount');
+                            if (modalCount) modalCount.textContent = data.acknowledged_count;
+
+                            // Update waiting page counter
+                            const waitingCount = document.getElementById('acknowledgedCountDisplay');
+                            if (waitingCount) waitingCount.textContent = data.acknowledged_count;
+
+                            if (data.all_acknowledged && data.timer_started) {
+                                // All players ready, start the game!
+                                instructionsModal.hide();
+                                startQuestionBankTimer(data.remaining_time);
+                                showQuestionBankContent();
+                            } else {
+                                // Wait for others
+                                btn.innerHTML = '<i class="bi bi-check-circle me-2"></i>في انتظار اللاعبين...';
+                                btn.classList.remove('btn-game-primary');
+                                btn.classList.add('btn-game-secondary');
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error acknowledging:', error);
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="bi bi-check-circle me-2"></i>فهمت، يلا نبدأ!';
+                    }
+                });
+            });
+            @endif
+
+            function showQuestionBankContent() {
+                document.getElementById('waitingForAcknowledgments').style.display = 'none';
+                document.getElementById('questionBankContent').style.display = 'block';
+            }
+
+            function startQuestionBankTimer(initialTime) {
+                if (questionBankInterval) clearInterval(questionBankInterval);
+
+                questionBankCountdown = initialTime || {{ $remainingTime }};
+                currentState.timerStarted = true;
+
+                if (qbTimerEl) qbTimerEl.textContent = questionBankCountdown;
+
+                questionBankInterval = setInterval(() => {
+                    questionBankCountdown--;
+                    if (qbTimerEl) qbTimerEl.textContent = questionBankCountdown;
+
+                    if (questionBankCountdown <= 10 && questionBankCountdown > 5) {
+                        qbTimerContainer?.classList.add('warning');
+                        qbTimerContainer?.classList.remove('danger');
+                    } else if (questionBankCountdown <= 5) {
+                        qbTimerContainer?.classList.remove('warning');
+                        qbTimerContainer?.classList.add('danger');
+                    }
+
+                    if (questionBankCountdown <= 0) {
+                        clearInterval(questionBankInterval);
+                        endQuestionBankPhase();
+                    }
+                }, 1000);
+            }
+
+            // Only start timer if already started (all acknowledged)
+            @if($timerStarted ?? false)
+            questionBankInterval = setInterval(() => {
                 questionBankCountdown--;
                 if (qbTimerEl) qbTimerEl.textContent = questionBankCountdown;
 
@@ -879,6 +1058,7 @@
                     endQuestionBankPhase();
                 }
             }, 1000);
+            @endif
 
             // Question type toggle
             document.querySelectorAll('input[name="question_type"]').forEach(radio => {
@@ -1296,6 +1476,35 @@
 
                             case 'room_deleted':
                                 window.location.href = '{{ route("game.landing") }}';
+                                break;
+
+                            case 'question_bank_timer_started':
+                                // All players acknowledged, start the timer!
+                                console.log('Timer started!', e.data);
+                                currentState.timerStarted = true;
+
+                                // Hide modal if showing
+                                const instructionsModal = document.getElementById('questionBankInstructionsModal');
+                                if (instructionsModal) {
+                                    const modal = bootstrap.Modal.getInstance(instructionsModal);
+                                    if (modal) modal.hide();
+                                }
+
+                                // Show content and start timer
+                                if (typeof showQuestionBankContent === 'function') {
+                                    showQuestionBankContent();
+                                }
+                                if (typeof startQuestionBankTimer === 'function') {
+                                    startQuestionBankTimer(e.data.timer);
+                                }
+                                break;
+
+                            case 'player_acknowledged':
+                                // Update acknowledged count displays
+                                const modalAckCount = document.getElementById('modalAcknowledgedCount');
+                                const waitingAckCount = document.getElementById('acknowledgedCountDisplay');
+                                if (modalAckCount) modalAckCount.textContent = e.data.acknowledged_count;
+                                if (waitingAckCount) waitingAckCount.textContent = e.data.acknowledged_count;
                                 break;
 
                             case 'question_bank_updated':

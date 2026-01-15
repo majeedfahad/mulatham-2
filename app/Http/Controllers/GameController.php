@@ -223,11 +223,14 @@ class GameController extends Controller
         $room->players()->where('status', 'waiting')->delete();
 
         // Start the game with question bank phase
+        // Note: question_bank_started_at will be set when all players acknowledge
         $room->update([
             'status' => 'playing',
             'phase' => 'question_bank',
-            'question_bank_started_at' => now(),
+            'question_bank_started_at' => null,
             'question_bank_duration' => $duration,
+            'question_bank_timer_started' => false,
+            'acknowledged_players' => [],
             'current_question_index' => 0, // Will be set to 1 when first question is selected
         ]);
 
@@ -281,6 +284,12 @@ class GameController extends Controller
             $remainingTime = $room->getQuestionBankRemainingTime();
             $totalQuestionsInBank = $room->getQuestionBankCount();
 
+            // Check acknowledgment status
+            $hasAcknowledged = $room->hasPlayerAcknowledged($player->id);
+            $timerStarted = $room->hasQuestionBankTimerStarted();
+            $acknowledgedCount = $room->getAcknowledgedCount();
+            $totalActivePlayers = $room->activePlayers()->count();
+
             return view('game.play', [
                 'room' => $room,
                 'player' => $player,
@@ -291,6 +300,11 @@ class GameController extends Controller
                 'remainingTime' => $remainingTime,
                 'totalQuestionsInBank' => $totalQuestionsInBank,
                 'totalPlayers' => $room->players()->whereIn('status', ['active', 'revealed'])->count(),
+                // Acknowledgment data
+                'hasAcknowledged' => $hasAcknowledged,
+                'timerStarted' => $timerStarted,
+                'acknowledgedCount' => $acknowledgedCount,
+                'totalActivePlayers' => $totalActivePlayers,
                 // Default values for other phases
                 'isWritingPhase' => false,
                 'hasAnswered' => false,
@@ -453,6 +467,62 @@ class GameController extends Controller
     /**
      * End question bank phase and start the game (host only or auto-triggered by timer)
      */
+    /**
+     * Acknowledge the question bank phase (player understood the instructions)
+     */
+    public function acknowledgeQuestionBank(Request $request, $code)
+    {
+        $room = Room::where('code', $code)->firstOrFail();
+        $player = $this->getCurrentPlayer($room);
+
+        if (! $player) {
+            return response()->json(['error' => 'غير مصرح'], 403);
+        }
+
+        // Must be in question bank phase
+        if (! $room->isInQuestionBankPhase()) {
+            return response()->json(['error' => 'اللعبة ليست في مرحلة كتابة الأسئلة'], 400);
+        }
+
+        // Add player to acknowledged list
+        $room->acknowledgePlayer($player->id);
+
+        // Refresh room to get updated data
+        $room->refresh();
+
+        // Check if all players acknowledged
+        $allAcknowledged = $room->allPlayersAcknowledged();
+        $acknowledgedCount = $room->getAcknowledgedCount();
+        $totalPlayers = $room->activePlayers()->count();
+
+        // Broadcast acknowledgment to others
+        broadcast(new GameStateUpdated($room, 'player_acknowledged', [
+            'player_id' => $player->id,
+            'acknowledged_count' => $acknowledgedCount,
+            'total_players' => $totalPlayers,
+        ]))->toOthers();
+
+        // If all players acknowledged, start the timer
+        if ($allAcknowledged && ! $room->hasQuestionBankTimerStarted()) {
+            $room->startQuestionBankTimer();
+
+            // Broadcast that timer has started
+            broadcast(new GameStateUpdated($room, 'question_bank_timer_started', [
+                'timer' => $room->question_bank_duration,
+                'started_at' => now()->toISOString(),
+            ]));
+        }
+
+        return response()->json([
+            'success' => true,
+            'acknowledged_count' => $acknowledgedCount,
+            'total_players' => $totalPlayers,
+            'all_acknowledged' => $allAcknowledged,
+            'timer_started' => $room->hasQuestionBankTimerStarted(),
+            'remaining_time' => $room->getQuestionBankRemainingTime(),
+        ]);
+    }
+
     public function endQuestionBankPhase($code)
     {
         $room = Room::where('code', $code)->firstOrFail();
