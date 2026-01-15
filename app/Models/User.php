@@ -7,10 +7,20 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser
 {
     use HasFactory, Notifiable;
+
+    /**
+     * Filament panel access check
+     */
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return $this->isAdmin();
+    }
 
     /**
      * The attributes that are mass assignable.
@@ -76,7 +86,7 @@ class User extends Authenticatable
     public function assignQuestionScore($question_id)
     {
         $answer = $this->answers()->where('question_id', $question_id)->first();
-        if($answer) {
+        if ($answer) {
             $this->score += $answer->score;
             $this->update();
         }
@@ -101,7 +111,7 @@ class User extends Authenticatable
 
     public function isEligibleToAnswer($question)
     {
-        if($this->isAlive() && !$this->hasAnsweredQuestion($question)) {
+        if ($this->isAlive() && !$this->hasAnsweredQuestion($question)) {
             return true;
         }
         return false;

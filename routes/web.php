@@ -54,6 +54,19 @@ Route::post('/room/{code}/end', [GameController::class, 'endGame'])->name('game.
 // Results
 Route::get('/room/{code}/results', [GameController::class, 'results'])->name('game.results');
 
+// =====================================================
+// SUGGESTIONS / FEEDBACK ROUTES
+// =====================================================
+use App\Http\Controllers\SuggestionController;
+
+Route::prefix('suggestions')->name('suggestions.')->group(function () {
+    Route::get('/', [SuggestionController::class, 'index'])->name('index');
+    Route::get('/create', [SuggestionController::class, 'create'])->name('create');
+    Route::post('/store', [SuggestionController::class, 'store'])->name('store');
+    Route::post('/{suggestion}/vote', [SuggestionController::class, 'vote'])->name('vote');
+    Route::post('/{suggestion}/unvote', [SuggestionController::class, 'unvote'])->name('unvote');
+});
+
 // Player status & management
 Route::post('/room/{code}/heartbeat', [GameController::class, 'heartbeat'])->name('game.heartbeat');
 Route::post('/room/{code}/kick/{playerId}', [GameController::class, 'kickPlayer'])->name('game.kick');
@@ -77,7 +90,7 @@ Route::get('/question/{id}', [App\Http\Controllers\HomeController::class, 'quest
 Route::post('answerQuestion/{id}', [App\Http\Controllers\HomeController::class, 'answerQuestion'])->name('answerQuestion');
 Route::get('users', [App\Http\Controllers\HomeController::class, 'users'])->name('users');
 
-Route::middleware(['auth', 'settings'])->prefix('Settings')->name('settings.')->group(function() {
+Route::middleware(['auth', 'settings'])->prefix('Settings')->name('settings.')->group(function () {
     Route::get('/', [SettingController::class, 'index'])->name('index');
     Route::get('/admin', [SettingController::class, 'admin'])->name('admin');
     Route::get('/users', [SettingController::class, 'users'])->name('users');
