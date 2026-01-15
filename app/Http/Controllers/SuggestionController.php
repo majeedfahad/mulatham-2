@@ -4,11 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Models\Suggestion;
 use App\Models\SuggestionVote;
+use App\Services\TelegramService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 
 class SuggestionController extends Controller
 {
+    public function __construct(
+        protected TelegramService $telegram
+    ) {}
+
     /**
      * Show the suggestions leaderboard (public)
      */
@@ -60,6 +65,14 @@ class SuggestionController extends Controller
             'room_id' => $validated['room_id'] ?? null,
             'status' => 'pending',
         ]);
+
+        // Send Telegram notification
+        $this->telegram->notifyNewSuggestion(
+            $validated['title'],
+            $validated['description'],
+            $validated['category'],
+            $validated['author_name'] ?? null
+        );
 
         return redirect()
             ->route('suggestions.index')

@@ -142,4 +142,42 @@ class TelegramService
 
         return $this->send($message);
     }
+
+    /**
+     * Send a new suggestion notification
+     */
+    public function notifyNewSuggestion(string $title, string $description, string $category, ?string $authorName = null): bool
+    {
+        $categoryEmoji = match ($category) {
+            'feature' => '✨',
+            'bug' => '🐛',
+            'improvement' => '📈',
+            default => '💡',
+        };
+
+        $categoryLabel = match ($category) {
+            'feature' => 'ميزة جديدة',
+            'bug' => 'بلاغ خطأ',
+            'improvement' => 'تحسين',
+            default => 'أخرى',
+        };
+
+        $message = "{$categoryEmoji} <b>اقتراح جديد!</b>\n\n"
+            ."📝 العنوان: <b>".htmlspecialchars($title)."</b>\n"
+            ."🏷 التصنيف: {$categoryLabel}\n";
+
+        if ($authorName) {
+            $message .= "👤 المرسل: ".htmlspecialchars($authorName)."\n";
+        }
+
+        $message .= "\n📄 التفاصيل:\n<i>".htmlspecialchars(substr($description, 0, 500))."</i>";
+
+        if (strlen($description) > 500) {
+            $message .= '...';
+        }
+
+        $message .= "\n\n⏰ ".now()->format('Y-m-d H:i:s');
+
+        return $this->send($message);
+    }
 }
