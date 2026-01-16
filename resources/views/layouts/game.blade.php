@@ -6,7 +6,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>@yield('title', 'ملثم') - يا قافط .. يا مقفوط</title>
+    <title>@yield('title', 'الملثم') - الملثم</title>
+    <meta name="description" content="الملثم - يا قافط .. يا مقفوط">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ asset('imgs/mulatham-logo.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('imgs/mulatham-logo.png') }}">
+
+    <!-- Open Graph / Facebook / WhatsApp -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ url()->current() }}">
+    <meta property="og:title" content="@yield('title', 'الملثم') - الملثم">
+    <meta property="og:description" content="الملثم - يا قافط .. يا مقفوط">
+    <meta property="og:image" content="{{ asset('imgs/mulatham-logo.png') }}">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="@yield('title', 'الملثم') - الملثم">
+    <meta name="twitter:description" content="الملثم - يا قافط .. يا مقفوط">
+    <meta name="twitter:image" content="{{ asset('imgs/mulatham-logo.png') }}">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
