@@ -328,6 +328,18 @@
         .table-responsive {
             background: transparent;
         }
+
+        /* Prevent status badge from wrapping */
+        .status-badge {
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .table tbody td {
+            white-space: nowrap;
+        }
     </style>
 @endpush
 

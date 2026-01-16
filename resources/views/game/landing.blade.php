@@ -6,8 +6,7 @@
     <div class="container py-4">
         <!-- Hero Section -->
         <div class="text-center mb-4 animate-fade-in">
-            <img src="{{ asset('imgs/logo-nightsky.svg') }}" alt="ملثم" class="game-logo mb-3"
-                style="width: 140px; height: 140px;">
+            <img src="{{ asset('imgs/mulatham-logo.png') }}" alt="ملثم" class="game-logo mb-3">
             <h1 class="game-title mb-2">ملثم</h1>
             <p class="game-subtitle mb-0">يا قافط .. يا مقفوط</p>
         </div>

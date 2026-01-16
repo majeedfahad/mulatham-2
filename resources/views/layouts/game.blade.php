@@ -473,8 +473,7 @@
 
         /* Logo */
         .game-logo {
-            width: 120px;
-            height: 120px;
+            width: 80%;
             object-fit: contain;
             filter: drop-shadow(0 8px 24px rgba(201, 162, 39, 0.3));
         }

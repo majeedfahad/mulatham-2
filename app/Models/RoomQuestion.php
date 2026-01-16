@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\ArabicTextNormalizer;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -94,7 +95,7 @@ class RoomQuestion extends Model
         return $this->room->players()
             ->whereIn('status', ['active', 'revealed'])
             ->get()
-            ->filter(fn($p) => $p->isOnline())
+            ->filter(fn ($p) => $p->isOnline())
             ->count();
     }
 
@@ -161,7 +162,7 @@ class RoomQuestion extends Model
      */
     public function awardCreatorPoints(): int
     {
-        if (!$this->creator_id) {
+        if (! $this->creator_id) {
             return 0;
         }
 
@@ -262,21 +263,29 @@ class RoomQuestion extends Model
         if ($this->isMultipleChoice() && $this->choices && isset($this->correct_choice_index)) {
             return $this->choices[$this->correct_choice_index] ?? null;
         }
+
         return $this->correct_answer;
     }
 
     /**
      * Check if an answer is correct
+     * Uses Arabic text normalization to handle variations like:
+     * - ة vs ه (المدينة = المدينه)
+     * - ال التعريف (الرياض = رياض)
+     * - أ إ آ variations
+     * - ى vs ي
      */
     public function isAnswerCorrect(string $answer): bool
     {
         if ($this->isMultipleChoice()) {
             // For multiple choice, check if the answer matches the correct choice
             $correctAnswer = $this->getCorrectAnswer();
-            return $correctAnswer && mb_strtolower(trim($answer)) === mb_strtolower(trim($correctAnswer));
+
+            return $correctAnswer && ArabicTextNormalizer::compare($answer, $correctAnswer);
         }
-        // For text answers, case-insensitive comparison
-        return mb_strtolower(trim($answer)) === mb_strtolower(trim($this->correct_answer));
+
+        // For text answers, use Arabic normalization for flexible matching
+        return ArabicTextNormalizer::compare($answer, $this->correct_answer);
     }
 
     /**

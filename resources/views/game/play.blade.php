@@ -7,7 +7,7 @@
         <!-- Header -->
         <div class="d-flex justify-content-between align-items-center mb-4 animate-fade-in">
             <div class="d-flex align-items-center gap-3">
-                <img src="{{ asset('imgs/logo-nightsky.svg') }}" alt="ملثم" style="width: 48px; height: 48px;">
+                <img src="{{ asset('imgs/mulatham-logo.png') }}" alt="ملثم" style="width: 70px; height: 36px;">
                 <div>
                     <h5 class="mb-0 fw-bold">ملثم</h5>
                     <small class="text-muted-custom">غرفة {{ $room->code }}</small>
@@ -897,7 +897,7 @@
             revealingPlayerId: {{ $room->revealing_player_id ?? 'null' }},
             timerStarted: {{ ($timerStarted ?? false) ? 'true' : 'false' }},
             hasAcknowledged: {{ ($hasAcknowledged ?? false) ? 'true' : 'false' }}
-                        };
+                                    };
         let isTyping = false;
         let revealTimerInterval = null;
         let countdownInterval = null;
@@ -989,10 +989,10 @@
                 }
 
                 console.log('Found', savedQuestions.length, 'saved questions for this room to import');
-                
+
                 const initialCount = currentState.playerQuestionsCount;
                 let importedCount = 0;
-                
+
                 // Import each question one by one
                 for (const question of savedQuestions) {
                     // Check if we've reached max questions
@@ -1000,22 +1000,22 @@
                         console.log('Reached max questions limit, stopping import');
                         break;
                     }
-                    
+
                     try {
                         const data = {
                             question_text: question.question_text,
                             question_type: question.question_type
                         };
-                        
+
                         if (question.question_type === 'choice') {
                             data.choices = question.choices;
                             data.correct_choice_index = question.correct_choice_index;
                         } else {
                             data.correct_answer = question.correct_answer;
                         }
-                        
+
                         console.log('Importing question:', question.question_text.substring(0, 50) + '...');
-                        
+
                         const response = await fetch(`/room/${roomCode}/question-bank/add`, {
                             method: 'POST',
                             headers: {
@@ -1025,21 +1025,21 @@
                             },
                             body: JSON.stringify(data)
                         });
-                        
+
                         const result = await response.json();
                         console.log('Import result:', result);
-                        
+
                         if (result.success) {
                             importedCount++;
                             currentState.playerQuestionsCount = result.player_questions_count;
-                            
+
                             // Update UI
                             const countEl = document.getElementById('playerQuestionsCount');
                             if (countEl) countEl.textContent = result.player_questions_count;
-                            
+
                             const totalEl = document.getElementById('totalQuestionsInBank');
                             if (totalEl) totalEl.textContent = result.total_questions;
-                            
+
                             // Check if auto-started
                             if (result.auto_started) {
                                 console.log('Game auto-started after import');
@@ -1054,11 +1054,11 @@
                         console.error('Error importing question:', error);
                     }
                 }
-                
+
                 // Clear saved questions after import attempt
                 localStorage.removeItem(SAVED_QUESTIONS_KEY);
                 console.log('Imported', importedCount, 'questions. Cleared saved questions from localStorage.');
-                
+
                 // Reload to show imported questions in UI only if we imported something new
                 if (importedCount > 0) {
                     console.log('Reloading to show imported questions...');
@@ -1299,16 +1299,16 @@
                                 item.className = 'question-item d-flex align-items-center justify-content-between p-3 mb-2';
                                 item.dataset.questionId = result.question_id;
                                 item.innerHTML = `
-                                                                    <div class="flex-fill">
-                                                                        <div class="fw-bold">${questionText}</div>
-                                                                        <small class="text-muted-custom">
-                                                                            ${questionType === 'choice' ? '<i class="bi bi-list-check me-1"></i>اختيار من متعدد' : '<i class="bi bi-fonts me-1"></i>إجابة نصية'}
-                                                                        </small>
-                                                                    </div>
-                                                                    <button type="button" class="btn-game btn-game-outline btn-game-sm delete-question-btn" data-question-id="${result.question_id}">
-                                                                        <i class="bi bi-trash"></i>
-                                                                    </button>
-                                                                `;
+                                                                                            <div class="flex-fill">
+                                                                                                <div class="fw-bold">${questionText}</div>
+                                                                                                <small class="text-muted-custom">
+                                                                                                    ${questionType === 'choice' ? '<i class="bi bi-list-check me-1"></i>اختيار من متعدد' : '<i class="bi bi-fonts me-1"></i>إجابة نصية'}
+                                                                                                </small>
+                                                                                            </div>
+                                                                                            <button type="button" class="btn-game btn-game-outline btn-game-sm delete-question-btn" data-question-id="${result.question_id}">
+                                                                                                <i class="bi bi-trash"></i>
+                                                                                            </button>
+                                                                                        `;
                                 list.appendChild(item);
                                 attachDeleteListeners();
                             } else {
