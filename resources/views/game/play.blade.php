@@ -952,27 +952,43 @@
 
             // Function to import saved questions from localStorage
             async function importSavedQuestions() {
-                const savedQuestionsJson = localStorage.getItem(SAVED_QUESTIONS_KEY);
-                if (!savedQuestionsJson) {
+                const savedDataJson = localStorage.getItem(SAVED_QUESTIONS_KEY);
+                if (!savedDataJson) {
                     console.log('No saved questions found in localStorage');
                     return;
                 }
-                
-                let savedQuestions;
+
+                let savedData;
                 try {
-                    savedQuestions = JSON.parse(savedQuestionsJson);
+                    savedData = JSON.parse(savedDataJson);
                 } catch (e) {
                     console.error('Error parsing saved questions:', e);
                     localStorage.removeItem(SAVED_QUESTIONS_KEY);
                     return;
                 }
-                
-                if (!savedQuestions || savedQuestions.length === 0) {
-                    console.log('Saved questions array is empty');
+
+                // Check if saved data has the new format with room code
+                if (!savedData || !savedData.roomCode || !savedData.questions) {
+                    console.log('Invalid saved questions format, clearing...');
+                    localStorage.removeItem(SAVED_QUESTIONS_KEY);
                     return;
                 }
-                
-                console.log('Found', savedQuestions.length, 'saved questions to import');
+
+                // Only import if room code matches (same room replay)
+                if (savedData.roomCode !== roomCode) {
+                    console.log('Saved questions are for different room (' + savedData.roomCode + '), skipping import');
+                    localStorage.removeItem(SAVED_QUESTIONS_KEY);
+                    return;
+                }
+
+                const savedQuestions = savedData.questions;
+                if (!savedQuestions || savedQuestions.length === 0) {
+                    console.log('Saved questions array is empty');
+                    localStorage.removeItem(SAVED_QUESTIONS_KEY);
+                    return;
+                }
+
+                console.log('Found', savedQuestions.length, 'saved questions for this room to import');
                 
                 const initialCount = currentState.playerQuestionsCount;
                 let importedCount = 0;

@@ -1261,12 +1261,12 @@ class GameController extends Controller
             'reveal_started_at' => null,
         ]);
 
-        // Broadcast to all players that game is restarting
+        // Broadcast to all players that game is restarting (with query param for change name modal)
         broadcast(new GameStateUpdated($room, 'game_restarted', [
-            'redirect_url' => route('game.lobby', $code),
+            'redirect_url' => route('game.lobby', ['code' => $code, 'play_again' => 1]),
         ]));
 
-        return redirect()->route('game.lobby', $code);
+        return redirect()->route('game.lobby', ['code' => $code, 'play_again' => 1]);
     }
 
     /**
@@ -1320,6 +1320,49 @@ class GameController extends Controller
         session()->forget(['player_token', 'room_code']);
 
         return redirect()->route('game.landing');
+    }
+
+    /**
+     * Change the player's fake name (only in lobby)
+     */
+    public function changeFakeName(Request $request, $code)
+    {
+        $request->validate([
+            'fake_name' => 'required|string|max:50',
+        ]);
+
+        $room = Room::where('code', $code)->firstOrFail();
+        $player = $this->getCurrentPlayer($room);
+
+        if (! $player) {
+            return response()->json(['error' => 'غير مصرح'], 403);
+        }
+
+        // Only allow in lobby
+        if (! $room->isInLobby()) {
+            return response()->json(['error' => 'لا يمكن تغيير الاسم المستعار أثناء اللعب'], 400);
+        }
+
+        // Check if fake name is already taken by another player
+        $exists = $room->players()
+            ->where('fake_name', $request->fake_name)
+            ->where('id', '!=', $player->id)
+            ->exists();
+
+        if ($exists) {
+            return response()->json(['error' => 'هذا الاسم المستعار مستخدم بالفعل'], 400);
+        }
+
+        // Update fake name
+        $player->update(['fake_name' => $request->fake_name]);
+
+        // Broadcast to others
+        broadcast(new PlayerUpdated($room, 'name_changed', $player))->toOthers();
+
+        return response()->json([
+            'success' => true,
+            'fake_name' => $player->fake_name,
+        ]);
     }
 
     /**

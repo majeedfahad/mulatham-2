@@ -55,7 +55,13 @@
                 <div class="game-card animate-fade-in p-3">
                     <small class="text-muted-custom d-block mb-1">معلوماتك</small>
                     <div class="fw-bold">{{ $player->name }}</div>
-                    <div class="text-primary-custom small">{{ $player->fake_name }}</div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="text-primary-custom small" id="myFakeName">{{ $player->fake_name }}</span>
+                        <button type="button" class="btn-game btn-game-outline btn-game-sm"
+                            style="padding: 2px 6px; font-size: 0.7rem;" onclick="showChangeNameModal()">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                    </div>
                     @if($player->is_host)
                         <span class="badge bg-warning text-dark mt-1" style="font-size: 0.65rem;">
                             <i class="bi bi-star-fill"></i> مضيف
@@ -328,736 +334,886 @@
             </div>
         </div>
     </div>
+
+    <!-- Custom Modal Backdrop for Change Name -->
+    <div id="changeNameBackdrop" class="custom-modal-backdrop" style="display: none;"></div>
+
+    <!-- Change Fake Name Modal -->
+    <div class="modal fade" id="changeNameModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="false"
+        data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">
+                        <i class="bi bi-pencil me-2"></i>
+                        تغيير الاسم المستعار
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    @if(request()->query('play_again'))
+                        <div class="game-alert game-alert-info mb-3">
+                            <i class="bi bi-info-circle"></i>
+                            <span>غيّر اسمك المستعار ليبقى هويتك سرية!</span>
+                        </div>
+                    @endif
+                    <div class="mb-3">
+                        <label class="game-label">الاسم المستعار الجديد</label>
+                        <input type="text" class="game-input" id="newFakeNameInput" maxlength="50"
+                            placeholder="أدخل الاسم المستعار">
+                    </div>
+                    <div id="changeNameError" class="text-danger small mb-3" style="display: none;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-game btn-game-outline" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn-game btn-game-primary" id="saveNameBtn" onclick="saveFakeName()">
+                        <i class="bi bi-check-lg"></i>
+                        حفظ
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 @endsection
 
-@push('styles')
-    <style>
-        /* Timer Selector */
-        .timer-btn {
-            padding: 6px 12px;
-            border: 1px solid var(--color-border);
-            background: var(--color-card);
-            color: var(--color-text);
-            border-radius: 20px;
-            font-size: 0.85rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
+    @push('styles')
+        <style>
+            /* Timer Selector */
+            .timer-btn {
+                padding: 6px 12px;
+                border: 1px solid var(--color-border);
+                background: var(--color-card);
+                color: var(--color-text);
+                border-radius: 20px;
+                font-size: 0.85rem;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            }
 
-        .timer-btn:hover {
-            border-color: var(--color-primary);
-            background: var(--color-background);
-        }
+            .timer-btn:hover {
+                border-color: var(--color-primary);
+                background: var(--color-background);
+            }
 
-        .timer-btn.active {
-            background: var(--color-primary);
-            border-color: var(--color-primary);
-            color: white;
-        }
+            .timer-btn.active {
+                background: var(--color-primary);
+                border-color: var(--color-primary);
+                color: white;
+            }
 
-        /* Online/Offline Indicator */
-        .online-indicator {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-left: 4px;
-            flex-shrink: 0;
-        }
+            /* Custom Modal Backdrop */
+            .custom-modal-backdrop {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background-color: rgba(6, 8, 16, 0.85);
+                z-index: 1040;
+            }
 
-        .online-indicator.online {
-            background: #22c55e;
-            box-shadow: 0 0 4px #22c55e;
-        }
+            #changeNameModal {
+                z-index: 1050;
+            }
 
-        .online-indicator.offline {
-            background: #9ca3af;
-        }
+            /* Online/Offline Indicator */
+            .online-indicator {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                display: inline-block;
+                margin-left: 4px;
+                flex-shrink: 0;
+            }
 
-        /* Kick Button */
-        .kick-btn {
-            background: transparent;
-            border: none;
-            color: var(--color-muted);
-            padding: 2px 4px;
-            margin-right: -4px;
-            cursor: pointer;
-            opacity: 0;
-            transition: all 0.2s ease;
-            font-size: 0.7rem;
-        }
+            .online-indicator.online {
+                background: #22c55e;
+                box-shadow: 0 0 4px #22c55e;
+            }
 
-        .player-chip:hover .kick-btn {
-            opacity: 1;
-        }
+            .online-indicator.offline {
+                background: #9ca3af;
+            }
 
-        .kick-btn:hover {
-            color: #ef4444;
-        }
-
-        /* Custom Modal Backdrop */
-        .custom-modal-backdrop {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background-color: rgba(6, 8, 16, 0.85);
-            z-index: 1040;
-        }
-
-        #instructionsModal {
-            z-index: 1050;
-        }
-
-        #instructionsModal .modal-dialog {
-            z-index: 1051;
-        }
-
-        /* Step Indicators */
-        .step-indicators {
-            display: flex;
-            gap: 6px;
-        }
-
-        .step-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: var(--color-border);
-            transition: all 0.3s ease;
-        }
-
-        .step-dot.active {
-            background: var(--color-primary);
-            transform: scale(1.2);
-        }
-
-        .step-dot.completed {
-            background: var(--color-success);
-        }
-
-        /* Step Icon */
-        .step-icon {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto;
-        }
-
-        .step-icon i {
-            font-size: 2.5rem;
-            color: white;
-        }
-
-        /* Instruction Cards */
-        .instruction-card {
-            display: flex;
-            align-items: flex-start;
-            gap: 1rem;
-            padding: 0.75rem 1rem;
-            background: var(--color-card);
-            border-radius: var(--radius-md);
-            border: 1px solid var(--color-border);
-        }
-
-        .instruction-number {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            flex-shrink: 0;
-        }
-
-        /* Question Type Cards */
-        .question-type-card {
-            padding: 1.25rem;
-            background: var(--color-card);
-            border-radius: var(--radius-md);
-            border: 1px solid var(--color-border);
-        }
-
-        /* Scoring Cards */
-        .scoring-card {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: 1rem;
-            background: var(--color-card);
-            border-radius: var(--radius-md);
-            border: 1px solid var(--color-border);
-        }
-
-        .scoring-card i {
-            flex-shrink: 0;
-        }
-
-        .scoring-card div {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .scoring-card-danger {
-            border-color: rgba(239, 68, 68, 0.3);
-            background: rgba(239, 68, 68, 0.05);
-        }
-
-        /* Tip Cards */
-        .tip-card {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: 0.75rem 1rem;
-            background: var(--color-card);
-            border-radius: var(--radius-md);
-            border: 1px solid var(--color-border);
-        }
-
-        .tip-card i {
-            font-size: 1.25rem;
-            flex-shrink: 0;
-        }
-
-        /* Animation for step transitions */
-        .instruction-step {
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from {
+            /* Kick Button */
+            .kick-btn {
+                background: transparent;
+                border: none;
+                color: var(--color-muted);
+                padding: 2px 4px;
+                margin-right: -4px;
+                cursor: pointer;
                 opacity: 0;
-                transform: translateX(-10px);
+                transition: all 0.2s ease;
+                font-size: 0.7rem;
             }
 
-            to {
+            .player-chip:hover .kick-btn {
                 opacity: 1;
-                transform: translateX(0);
             }
-        }
-    </style>
-@endpush
 
-@push('scripts')
-    <script>
-        const roomCode = '{{ $room->code }}';
+            .kick-btn:hover {
+                color: #ef4444;
+            }
 
-        // Instructions Modal - Cookie & Wizard Logic
-        const INSTRUCTIONS_COOKIE = 'mulatham_instructions_seen';
-        let currentStep = 1;
-        const totalSteps = 3;
-        const stepTitles = {
-            1: 'كيفية اللعب',
-            2: 'أنواع الأسئلة',
-            3: 'نظام النقاط'
-        };
+            /* Custom Modal Backdrop */
+            .custom-modal-backdrop {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background-color: rgba(6, 8, 16, 0.85);
+                z-index: 1040;
+            }
 
-        function getCookie(name) {
-            const value = `; ${document.cookie}`;
-            const parts = value.split(`; ${name}=`);
-            if (parts.length === 2) return parts.pop().split(';').shift();
-            return null;
-        }
+            #instructionsModal {
+                z-index: 1050;
+            }
 
-        function setCookie(name, value, days = 365) {
-            const expires = new Date(Date.now() + days * 864e5).toUTCString();
-            document.cookie = `${name}=${value}; expires=${expires}; path=/; SameSite=Lax`;
-        }
+            #instructionsModal .modal-dialog {
+                z-index: 1051;
+            }
 
-        function showInstructionsModal() {
-            // Clean up any stale Bootstrap backdrops
-            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+            /* Step Indicators */
+            .step-indicators {
+                display: flex;
+                gap: 6px;
+            }
 
-            // Show custom backdrop
-            document.getElementById('customModalBackdrop').style.display = 'block';
+            .step-dot {
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+                background: var(--color-border);
+                transition: all 0.3s ease;
+            }
 
-            const modalEl = document.getElementById('instructionsModal');
-            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-            modal.show();
+            .step-dot.active {
+                background: var(--color-primary);
+                transform: scale(1.2);
+            }
 
-            // Remove Bootstrap backdrop again after modal shows
-            setTimeout(() => {
-                document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-            }, 100);
-        }
+            .step-dot.completed {
+                background: var(--color-success);
+            }
 
-        function hideInstructionsModal() {
-            const modalEl = document.getElementById('instructionsModal');
-            const modal = bootstrap.Modal.getInstance(modalEl);
-            if (modal) modal.hide();
-            document.getElementById('customModalBackdrop').style.display = 'none';
-            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-        }
+            /* Step Icon */
+            .step-icon {
+                width: 80px;
+                height: 80px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto;
+            }
 
-        function goToStep(step) {
-            if (step < 1 || step > totalSteps) return;
+            .step-icon i {
+                font-size: 2.5rem;
+                color: white;
+            }
 
-            // Hide all steps
-            document.querySelectorAll('.instruction-step').forEach(s => s.style.display = 'none');
+            /* Instruction Cards */
+            .instruction-card {
+                display: flex;
+                align-items: flex-start;
+                gap: 1rem;
+                padding: 0.75rem 1rem;
+                background: var(--color-card);
+                border-radius: var(--radius-md);
+                border: 1px solid var(--color-border);
+            }
 
-            // Show current step
-            document.querySelector(`.instruction-step[data-step="${step}"]`).style.display = 'block';
+            .instruction-number {
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+                color: white;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: bold;
+                flex-shrink: 0;
+            }
 
-            // Update step dots
-            document.querySelectorAll('.step-dot').forEach(dot => {
-                const dotStep = parseInt(dot.dataset.step);
-                dot.classList.remove('active', 'completed');
-                if (dotStep < step) {
-                    dot.classList.add('completed');
-                } else if (dotStep === step) {
-                    dot.classList.add('active');
+            /* Question Type Cards */
+            .question-type-card {
+                padding: 1.25rem;
+                background: var(--color-card);
+                border-radius: var(--radius-md);
+                border: 1px solid var(--color-border);
+            }
+
+            /* Scoring Cards */
+            .scoring-card {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+                padding: 1rem;
+                background: var(--color-card);
+                border-radius: var(--radius-md);
+                border: 1px solid var(--color-border);
+            }
+
+            .scoring-card i {
+                flex-shrink: 0;
+            }
+
+            .scoring-card div {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .scoring-card-danger {
+                border-color: rgba(239, 68, 68, 0.3);
+                background: rgba(239, 68, 68, 0.05);
+            }
+
+            /* Tip Cards */
+            .tip-card {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+                padding: 0.75rem 1rem;
+                background: var(--color-card);
+                border-radius: var(--radius-md);
+                border: 1px solid var(--color-border);
+            }
+
+            .tip-card i {
+                font-size: 1.25rem;
+                flex-shrink: 0;
+            }
+
+            /* Animation for step transitions */
+            .instruction-step {
+                animation: fadeIn 0.3s ease;
+            }
+
+            @keyframes fadeIn {
+                from {
+                    opacity: 0;
+                    transform: translateX(-10px);
                 }
-            });
 
-            // Update title
-            document.getElementById('stepTitle').textContent = stepTitles[step];
+                to {
+                    opacity: 1;
+                    transform: translateX(0);
+                }
+            }
+        </style>
+    @endpush
 
-            // Update buttons
-            const prevBtn = document.getElementById('prevStepBtn');
-            const nextBtn = document.getElementById('nextStepBtn');
-            const finishBtn = document.getElementById('finishBtn');
+    @push('scripts')
+        <script>
+            const roomCode = '{{ $room->code }}';
 
-            prevBtn.style.display = step > 1 ? 'inline-flex' : 'none';
-            nextBtn.style.display = step < totalSteps ? 'inline-flex' : 'none';
-            finishBtn.style.display = step === totalSteps ? 'inline-flex' : 'none';
+            // Instructions Modal - Cookie & Wizard Logic
+            const INSTRUCTIONS_COOKIE = 'mulatham_instructions_seen';
+            let currentStep = 1;
+            const totalSteps = 3;
+            const stepTitles = {
+                1: 'كيفية اللعب',
+                2: 'أنواع الأسئلة',
+                3: 'نظام النقاط'
+            };
 
-            currentStep = step;
-        }
-
-        // Initialize instructions modal logic
-        document.addEventListener('DOMContentLoaded', function () {
-            // Clean up any stale modal backdrops on page load
-            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-
-            // Show instructions on first visit
-            if (!getCookie(INSTRUCTIONS_COOKIE)) {
-                setTimeout(() => {
-                    showInstructionsModal();
-                }, 500);
+            function getCookie(name) {
+                const value = `; ${document.cookie}`;
+                const parts = value.split(`; ${name}=`);
+                if (parts.length === 2) return parts.pop().split(';').shift();
+                return null;
             }
 
-            // Help button click
-            document.getElementById('showInstructionsBtn')?.addEventListener('click', function () {
-                currentStep = 1;
-                goToStep(1);
-                showInstructionsModal();
-            });
+            function setCookie(name, value, days = 365) {
+                const expires = new Date(Date.now() + days * 864e5).toUTCString();
+                document.cookie = `${name}=${value}; expires=${expires}; path=/; SameSite=Lax`;
+            }
 
-            // Next button
-            document.getElementById('nextStepBtn')?.addEventListener('click', function () {
-                goToStep(currentStep + 1);
-            });
+            function showInstructionsModal() {
+                // Clean up any stale Bootstrap backdrops
+                document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
 
-            // Previous button
-            document.getElementById('prevStepBtn')?.addEventListener('click', function () {
-                goToStep(currentStep - 1);
-            });
+                // Show custom backdrop
+                document.getElementById('customModalBackdrop').style.display = 'block';
 
-            // Skip button
-            document.getElementById('skipInstructionsBtn')?.addEventListener('click', function () {
-                setCookie(INSTRUCTIONS_COOKIE, 'true');
-                hideInstructionsModal();
-            });
+                const modalEl = document.getElementById('instructionsModal');
+                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                modal.show();
 
-            // Finish button
-            document.getElementById('finishBtn')?.addEventListener('click', function () {
-                setCookie(INSTRUCTIONS_COOKIE, 'true');
-                hideInstructionsModal();
-            });
+                // Remove Bootstrap backdrop again after modal shows
+                setTimeout(() => {
+                    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+                }, 100);
+            }
 
-            // Hide backdrop when modal is hidden by any means
-            document.getElementById('instructionsModal')?.addEventListener('hidden.bs.modal', function () {
+            function hideInstructionsModal() {
+                const modalEl = document.getElementById('instructionsModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
                 document.getElementById('customModalBackdrop').style.display = 'none';
                 document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-            });
-        });
-        const roomUrl = '{{ url("/room/{$room->code}") }}';
-        const playUrl = '{{ route("game.play", $room->code) }}';
-        let isHost = {{ $player->is_host ? 'true' : 'false' }};
-        const currentPlayerId = {{ $player->id }};
-        const minPlayers = {{ config('game.min_players', 3) }};
-        let myStatus = '{{ $player->status }}';
+            }
 
-        // Toggle ready status via AJAX
-        async function toggleReady() {
-            const btn = document.getElementById('readyBtn');
-            const btnText = document.getElementById('readyBtnText');
-            const btnIcon = btn.querySelector('i');
+            function goToStep(step) {
+                if (step < 1 || step > totalSteps) return;
 
-            btn.disabled = true;
+                // Hide all steps
+                document.querySelectorAll('.instruction-step').forEach(s => s.style.display = 'none');
 
-            try {
-                const response = await fetch(`/room/${roomCode}/ready`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Accept': 'application/json',
+                // Show current step
+                document.querySelector(`.instruction-step[data-step="${step}"]`).style.display = 'block';
+
+                // Update step dots
+                document.querySelectorAll('.step-dot').forEach(dot => {
+                    const dotStep = parseInt(dot.dataset.step);
+                    dot.classList.remove('active', 'completed');
+                    if (dotStep < step) {
+                        dot.classList.add('completed');
+                    } else if (dotStep === step) {
+                        dot.classList.add('active');
                     }
                 });
 
-                const data = await response.json();
+                // Update title
+                document.getElementById('stepTitle').textContent = stepTitles[step];
 
-                if (data.success) {
-                    myStatus = data.status;
-                    updateReadyButton();
-                }
-            } catch (error) {
-                console.error('Error toggling ready:', error);
-            } finally {
-                btn.disabled = false;
-            }
-        }
+                // Update buttons
+                const prevBtn = document.getElementById('prevStepBtn');
+                const nextBtn = document.getElementById('nextStepBtn');
+                const finishBtn = document.getElementById('finishBtn');
 
-        // Timer selection (host only)
-        function selectTimer(duration) {
-            // Update hidden input
-            const durationInput = document.getElementById('questionBankDuration');
-            if (durationInput) {
-                durationInput.value = duration;
+                prevBtn.style.display = step > 1 ? 'inline-flex' : 'none';
+                nextBtn.style.display = step < totalSteps ? 'inline-flex' : 'none';
+                finishBtn.style.display = step === totalSteps ? 'inline-flex' : 'none';
+
+                currentStep = step;
             }
 
-            // Update button states
-            document.querySelectorAll('.timer-selector .timer-btn').forEach(btn => {
-                btn.classList.remove('active');
-                if (parseInt(btn.dataset.duration) === duration) {
-                    btn.classList.add('active');
+            // Initialize instructions modal logic
+            document.addEventListener('DOMContentLoaded', function () {
+                // Clean up any stale modal backdrops on page load
+                document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+
+                // Show instructions on first visit
+                if (!getCookie(INSTRUCTIONS_COOKIE)) {
+                    setTimeout(() => {
+                        showInstructionsModal();
+                    }, 500);
                 }
+
+                // Help button click
+                document.getElementById('showInstructionsBtn')?.addEventListener('click', function () {
+                    currentStep = 1;
+                    goToStep(1);
+                    showInstructionsModal();
+                });
+
+                // Next button
+                document.getElementById('nextStepBtn')?.addEventListener('click', function () {
+                    goToStep(currentStep + 1);
+                });
+
+                // Previous button
+                document.getElementById('prevStepBtn')?.addEventListener('click', function () {
+                    goToStep(currentStep - 1);
+                });
+
+                // Skip button
+                document.getElementById('skipInstructionsBtn')?.addEventListener('click', function () {
+                    setCookie(INSTRUCTIONS_COOKIE, 'true');
+                    hideInstructionsModal();
+                });
+
+                // Finish button
+                document.getElementById('finishBtn')?.addEventListener('click', function () {
+                    setCookie(INSTRUCTIONS_COOKIE, 'true');
+                    hideInstructionsModal();
+                });
+
+                // Hide backdrop when modal is hidden by any means
+                document.getElementById('instructionsModal')?.addEventListener('hidden.bs.modal', function () {
+                    document.getElementById('customModalBackdrop').style.display = 'none';
+                    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+                });
             });
-        }
+            const roomUrl = '{{ url("/room/{$room->code}") }}';
+            const playUrl = '{{ route("game.play", $room->code) }}';
+            let isHost = {{ $player->is_host ? 'true' : 'false' }};
+            const currentPlayerId = {{ $player->id }};
+            const minPlayers = {{ config('game.min_players', 3) }};
+            let myStatus = '{{ $player->status }}';
 
-        // Max questions selection (host only)
-        function selectMaxQuestions(count) {
-            // Update hidden input
-            const countInput = document.getElementById('maxQuestionsPerPlayer');
-            if (countInput) {
-                countInput.value = count;
-            }
+            // Toggle ready status via AJAX
+            async function toggleReady() {
+                const btn = document.getElementById('readyBtn');
+                const btnText = document.getElementById('readyBtnText');
+                const btnIcon = btn.querySelector('i');
 
-            // Update button states
-            document.querySelectorAll('.questions-selector .timer-btn').forEach(btn => {
-                btn.classList.remove('active');
-                if (parseInt(btn.dataset.count) === count) {
-                    btn.classList.add('active');
-                }
-            });
-        }
+                btn.disabled = true;
 
-        // Update ready button appearance
-        function updateReadyButton() {
-            const btn = document.getElementById('readyBtn');
-            const btnText = document.getElementById('readyBtnText');
-            const btnIcon = btn.querySelector('i');
-
-            if (myStatus === 'ready') {
-                btn.classList.remove('btn-game-success');
-                btn.classList.add('btn-game-outline');
-                btnIcon.classList.remove('bi-check-circle');
-                btnIcon.classList.add('bi-x-circle');
-                btnText.textContent = 'إلغاء';
-            } else {
-                btn.classList.remove('btn-game-outline');
-                btn.classList.add('btn-game-success');
-                btnIcon.classList.remove('bi-x-circle');
-                btnIcon.classList.add('bi-check-circle');
-                btnText.textContent = 'أنا جاهز!';
-            }
-        }
-
-        function showCopyFeedback(message) {
-            const feedback = document.getElementById('copyFeedback');
-            const messageEl = document.getElementById('copyMessage');
-            messageEl.textContent = message;
-            feedback.style.display = 'block';
-            setTimeout(() => {
-                feedback.style.display = 'none';
-            }, 2000);
-        }
-
-        function copyRoomCode() {
-            const code = document.getElementById('roomCode').textContent.trim();
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(code).then(() => {
-                    showCopyFeedback('تم نسخ الرمز!');
-                }).catch(() => {
-                    fallbackCopy(code, 'تم نسخ الرمز!');
-                });
-            } else {
-                fallbackCopy(code, 'تم نسخ الرمز!');
-            }
-        }
-
-        function copyRoomLink() {
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(roomUrl).then(() => {
-                    showCopyFeedback('تم نسخ الرابط!');
-                }).catch(() => {
-                    fallbackCopy(roomUrl, 'تم نسخ الرابط!');
-                });
-            } else {
-                fallbackCopy(roomUrl, 'تم نسخ الرابط!');
-            }
-        }
-
-        function fallbackCopy(text, successMessage) {
-            const textarea = document.createElement('textarea');
-            textarea.value = text;
-            textarea.style.position = 'fixed';
-            textarea.style.opacity = '0';
-            document.body.appendChild(textarea);
-            textarea.select();
-            try {
-                document.execCommand('copy');
-                showCopyFeedback(successMessage);
-            } catch (err) {
-                alert('لم نتمكن من النسخ. الرمز هو: ' + text);
-            }
-            document.body.removeChild(textarea);
-        }
-
-        // Heartbeat - ping server every 30 seconds to stay "online"
-        const heartbeatUrl = '{{ route("game.heartbeat", $room->code) }}';
-        let onlineStatus = {};
-
-        async function sendHeartbeat() {
-            try {
-                const response = await fetch(heartbeatUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                });
-                const data = await response.json();
-                if (data.success && data.players) {
-                    // Update online status for all players
-                    data.players.forEach(p => {
-                        onlineStatus[p.id] = p.is_online;
-                        updatePlayerOnlineIndicator(p.id, p.is_online);
-                    });
-                }
-            } catch (error) {
-                console.log('Heartbeat error:', error);
-            }
-        }
-
-        function updatePlayerOnlineIndicator(playerId, isOnline) {
-            const chip = document.querySelector(`.player-chip[data-player-id="${playerId}"]`);
-            if (chip) {
-                const indicator = chip.querySelector('.online-indicator');
-                if (indicator) {
-                    indicator.classList.remove('online', 'offline');
-                    indicator.classList.add(isOnline ? 'online' : 'offline');
-                }
-            }
-        }
-
-        // Start heartbeat on page load
-        document.addEventListener('DOMContentLoaded', function () {
-            sendHeartbeat(); // Initial heartbeat
-            setInterval(sendHeartbeat, 10000); // Then every 10 seconds
-        });
-
-        // Kick player function (host only)
-        async function kickPlayer(playerId) {
-            if (!confirm('هل تريد طرد هذا اللاعب؟')) {
-                return;
-            }
-
-            try {
-                const response = await fetch(`/room/${roomCode}/kick/${playerId}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                });
-                const data = await response.json();
-                if (!data.success) {
-                    alert(data.message || 'حدث خطأ');
-                }
-            } catch (error) {
-                console.log('Kick error:', error);
-                alert('حدث خطأ أثناء طرد اللاعب');
-            }
-        }
-
-        // Update players list UI
-        function updatePlayersUI(players, playerCount, readyCount, waitingCount, action = null) {
-            // Check if current player is now host
-            const currentPlayer = players.find(p => p.id === currentPlayerId);
-            const wasHost = isHost;
-            if (currentPlayer) {
-                isHost = currentPlayer.is_host;
-            }
-
-            // If we just became host, reload the page to show host controls
-            if (!wasHost && isHost) {
-                window.location.reload();
-                return;
-            }
-
-            // Update player chips
-            const playersContainer = document.querySelector('.d-flex.flex-wrap.gap-2');
-            if (playersContainer) {
-                let html = '';
-                players.forEach(p => {
-                    const isYou = p.id === currentPlayerId;
-                    const statusClass = p.status === 'ready' ? 'ready' : 'waiting';
-                    const youClass = isYou ? 'is-you' : '';
-                    const onlineClass = p.is_online !== false ? 'online' : 'offline';
-                    const showKickBtn = isHost && !isYou && !p.is_host;
-                    html += `
-                                                    <div class="player-chip ${statusClass} ${youClass}" data-player-id="${p.id}">
-                                                        <span class="online-indicator ${onlineClass}"></span>
-                                                        <span class="avatar">${p.name.charAt(0)}</span>
-                                                        <span class="name">${p.name}</span>
-                                                        ${p.is_host ? '<i class="bi bi-star-fill text-warning"></i>' : ''}
-                                                        ${p.status === 'ready' ? '<i class="bi bi-check-circle-fill text-success"></i>' : ''}
-                                                        ${showKickBtn ? `<button type="button" class="kick-btn" onclick="kickPlayer(${p.id})" title="طرد اللاعب"><i class="bi bi-x-lg"></i></button>` : ''}
-                                                    </div>
-                                                `;
-                });
-                playersContainer.innerHTML = html;
-            }
-
-            // Update header counts
-            const headerTitle = document.querySelector('.game-card-header .fw-bold');
-            if (headerTitle) {
-                headerTitle.innerHTML = `<i class="bi bi-people-fill me-1"></i> اللاعبون (${playerCount})`;
-            }
-
-            const headerCounts = document.querySelector('.game-card-header .small');
-            if (headerCounts) {
-                headerCounts.innerHTML = `
-                                                <span class="text-success">${readyCount} جاهز</span>
-                                                /
-                                                <span class="text-muted">${waitingCount} ينتظر</span>
-                                            `;
-            }
-
-            // Update minimum players message
-            const cardBody = document.querySelector('.game-card-body.py-2');
-            let minMsg = document.querySelector('.game-card-body .text-center.text-muted-custom.small.mt-2');
-
-            if (playerCount < minPlayers) {
-                if (!minMsg && cardBody) {
-                    cardBody.insertAdjacentHTML('beforeend', `
-                                                    <div class="text-center text-muted-custom small mt-2">
-                                                        <i class="bi bi-info-circle"></i> يلزم ${minPlayers} لاعبين على الأقل
-                                                    </div>
-                                                `);
-                }
-            } else if (minMsg) {
-                minMsg.remove();
-            }
-
-            // Update Start Game button state (for host)
-            if (isHost) {
-                const startBtn = document.getElementById('startGameBtn');
-                const hostMessage = document.getElementById('hostMessage');
-
-                if (startBtn) {
-                    startBtn.disabled = readyCount < minPlayers;
-                }
-                if (hostMessage) {
-                    hostMessage.style.display = readyCount < minPlayers ? 'block' : 'none';
-                }
-            }
-        }
-
-        // WebSocket connection with Echo
-        document.addEventListener('DOMContentLoaded', function () {
-            if (typeof window.Echo !== 'undefined') {
-                console.log('Connecting to WebSocket channel: room.' + roomCode);
-
-                window.Echo.channel('room.' + roomCode)
-                    .listen('.player.updated', (e) => {
-                        console.log('Player updated:', e);
-                        // Check if current player was removed (not in player list)
-                        const currentPlayerInList = e.players.find(p => p.id === currentPlayerId);
-                        if (!currentPlayerInList) {
-                            // Player was removed - redirect to landing
-                            window.location.href = '{{ route("game.landing") }}';
-                            return;
-                        }
-                        updatePlayersUI(e.players, e.player_count, e.ready_count, e.waiting_count, e.action);
-                    })
-                    .listen('.game.state.updated', (e) => {
-                        console.log('Game state updated:', e);
-                        if (e.type === 'game_started') {
-                            window.location.href = playUrl;
-                        }
-                        if (e.type === 'room_deleted') {
-                            window.location.href = '{{ route("game.landing") }}';
+                try {
+                    const response = await fetch(`/room/${roomCode}/ready`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json',
                         }
                     });
-            } else {
-                console.log('Echo not available, falling back to polling');
-                // Fallback to polling if Echo is not available
-                setInterval(checkForUpdates, 2000);
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        myStatus = data.status;
+                        updateReadyButton();
+                    }
+                } catch (error) {
+                    console.error('Error toggling ready:', error);
+                } finally {
+                    btn.disabled = false;
+                }
             }
-        });
 
-        // Fallback polling (only used if WebSocket fails)
-        async function checkForUpdates() {
-            try {
-                const response = await fetch(window.location.href, {
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            // Timer selection (host only)
+            function selectTimer(duration) {
+                // Update hidden input
+                const durationInput = document.getElementById('questionBankDuration');
+                if (durationInput) {
+                    durationInput.value = duration;
+                }
+
+                // Update button states
+                document.querySelectorAll('.timer-selector .timer-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                    if (parseInt(btn.dataset.duration) === duration) {
+                        btn.classList.add('active');
+                    }
                 });
+            }
 
-                if (response.url.includes('/play')) {
-                    window.location.href = response.url;
+            // Max questions selection (host only)
+            function selectMaxQuestions(count) {
+                // Update hidden input
+                const countInput = document.getElementById('maxQuestionsPerPlayer');
+                if (countInput) {
+                    countInput.value = count;
+                }
+
+                // Update button states
+                document.querySelectorAll('.questions-selector .timer-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                    if (parseInt(btn.dataset.count) === count) {
+                        btn.classList.add('active');
+                    }
+                });
+            }
+
+            // Update ready button appearance
+            function updateReadyButton() {
+                const btn = document.getElementById('readyBtn');
+                const btnText = document.getElementById('readyBtnText');
+                const btnIcon = btn.querySelector('i');
+
+                if (myStatus === 'ready') {
+                    btn.classList.remove('btn-game-success');
+                    btn.classList.add('btn-game-outline');
+                    btnIcon.classList.remove('bi-check-circle');
+                    btnIcon.classList.add('bi-x-circle');
+                    btnText.textContent = 'إلغاء';
+                } else {
+                    btn.classList.remove('btn-game-outline');
+                    btn.classList.add('btn-game-success');
+                    btnIcon.classList.remove('bi-x-circle');
+                    btnIcon.classList.add('bi-check-circle');
+                    btnText.textContent = 'أنا جاهز!';
+                }
+            }
+
+            // Change fake name modal
+            let changeNameModal = null;
+
+            function showChangeNameModal() {
+                const input = document.getElementById('newFakeNameInput');
+                const error = document.getElementById('changeNameError');
+                const changeNameBackdrop = document.getElementById('changeNameBackdrop');
+
+                if (!input || !changeNameBackdrop) {
+                    console.error('Modal elements not found');
                     return;
                 }
 
-                const html = await response.text();
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
+                // Pre-fill with current fake name
+                input.value = document.getElementById('myFakeName').textContent;
+                error.style.display = 'none';
 
-                const newPlayersList = doc.querySelector('.d-flex.flex-wrap.gap-2');
-                const currentPlayersList = document.querySelector('.d-flex.flex-wrap.gap-2');
-                if (newPlayersList && currentPlayersList) {
-                    currentPlayersList.innerHTML = newPlayersList.innerHTML;
+                // Show custom backdrop
+                changeNameBackdrop.style.display = 'block';
+
+                if (!changeNameModal) {
+                    changeNameModal = new bootstrap.Modal(document.getElementById('changeNameModal'));
+
+                    // Hide backdrop when modal is hidden
+                    document.getElementById('changeNameModal').addEventListener('hidden.bs.modal', function () {
+                        changeNameBackdrop.style.display = 'none';
+                    });
+                }
+                changeNameModal.show();
+
+                // Focus input after modal is shown
+                setTimeout(() => input.focus(), 300);
+            }
+
+            async function saveFakeName() {
+                const input = document.getElementById('newFakeNameInput');
+                const error = document.getElementById('changeNameError');
+                const btn = document.getElementById('saveNameBtn');
+                const newName = input.value.trim();
+
+                if (!newName) {
+                    error.textContent = 'يرجى إدخال الاسم المستعار';
+                    error.style.display = 'block';
+                    return;
                 }
 
-                const newCounts = doc.querySelector('.game-card-header .small');
-                const currentCounts = document.querySelector('.game-card-header .small');
-                if (newCounts && currentCounts) {
-                    currentCounts.innerHTML = newCounts.innerHTML;
+                btn.disabled = true;
+                error.style.display = 'none';
+
+                try {
+                    const response = await fetch(`/room/${roomCode}/change-name`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json',
+                        },
+                        body: JSON.stringify({ fake_name: newName })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        // Update UI
+                        document.getElementById('myFakeName').textContent = data.fake_name;
+                        changeNameModal.hide();
+                    } else {
+                        error.textContent = data.error || 'حدث خطأ';
+                        error.style.display = 'block';
+                    }
+                } catch (err) {
+                    console.error('Error changing name:', err);
+                    error.textContent = 'حدث خطأ في الاتصال';
+                    error.style.display = 'block';
+                } finally {
+                    btn.disabled = false;
                 }
+            }
 
-                const newTitle = doc.querySelector('.game-card-header .fw-bold');
-                const currentTitle = document.querySelector('.game-card-header .fw-bold');
-                if (newTitle && currentTitle) {
-                    currentTitle.innerHTML = newTitle.innerHTML;
+            // Handle Enter key in name input
+            document.addEventListener('DOMContentLoaded', function () {
+                document.getElementById('newFakeNameInput')?.addEventListener('keypress', function (e) {
+                    if (e.key === 'Enter') {
+                        saveFakeName();
+                    }
+                });
+
+                // Auto-show change name modal if coming from play again
+                @if(request()->query('play_again'))
+                    setTimeout(() => {
+                        showChangeNameModal();
+                    }, 500);
+                @endif
+            });
+
+            function showCopyFeedback(message) {
+                const feedback = document.getElementById('copyFeedback');
+                const messageEl = document.getElementById('copyMessage');
+                messageEl.textContent = message;
+                feedback.style.display = 'block';
+                setTimeout(() => {
+                    feedback.style.display = 'none';
+                }, 2000);
+            }
+
+            function copyRoomCode() {
+                const code = document.getElementById('roomCode').textContent.trim();
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(code).then(() => {
+                        showCopyFeedback('تم نسخ الرمز!');
+                    }).catch(() => {
+                        fallbackCopy(code, 'تم نسخ الرمز!');
+                    });
+                } else {
+                    fallbackCopy(code, 'تم نسخ الرمز!');
                 }
+            }
 
-                if (isHost) {
-                    const newStartBtn = doc.getElementById('startGameBtn');
-                    const currentStartBtn = document.getElementById('startGameBtn');
-                    const hostMessage = document.getElementById('hostMessage');
+            function copyRoomLink() {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(roomUrl).then(() => {
+                        showCopyFeedback('تم نسخ الرابط!');
+                    }).catch(() => {
+                        fallbackCopy(roomUrl, 'تم نسخ الرابط!');
+                    });
+                } else {
+                    fallbackCopy(roomUrl, 'تم نسخ الرابط!');
+                }
+            }
 
-                    if (newStartBtn && currentStartBtn) {
-                        currentStartBtn.disabled = newStartBtn.disabled;
-                        if (hostMessage) {
-                            hostMessage.style.display = newStartBtn.disabled ? 'block' : 'none';
+            function fallbackCopy(text, successMessage) {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    document.execCommand('copy');
+                    showCopyFeedback(successMessage);
+                } catch (err) {
+                    alert('لم نتمكن من النسخ. الرمز هو: ' + text);
+                }
+                document.body.removeChild(textarea);
+            }
+
+            // Heartbeat - ping server every 30 seconds to stay "online"
+            const heartbeatUrl = '{{ route("game.heartbeat", $room->code) }}';
+            let onlineStatus = {};
+
+            async function sendHeartbeat() {
+                try {
+                    const response = await fetch(heartbeatUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'X-Requested-With': 'XMLHttpRequest'
                         }
+                    });
+                    const data = await response.json();
+                    if (data.success && data.players) {
+                        // Update online status for all players
+                        data.players.forEach(p => {
+                            onlineStatus[p.id] = p.is_online;
+                            updatePlayerOnlineIndicator(p.id, p.is_online);
+                        });
+                    }
+                } catch (error) {
+                    console.log('Heartbeat error:', error);
+                }
+            }
+
+            function updatePlayerOnlineIndicator(playerId, isOnline) {
+                const chip = document.querySelector(`.player-chip[data-player-id="${playerId}"]`);
+                if (chip) {
+                    const indicator = chip.querySelector('.online-indicator');
+                    if (indicator) {
+                        indicator.classList.remove('online', 'offline');
+                        indicator.classList.add(isOnline ? 'online' : 'offline');
                     }
                 }
-            } catch (error) {
-                console.log('Polling error:', error);
             }
-        }
-    </script>
-@endpush
+
+            // Start heartbeat on page load
+            document.addEventListener('DOMContentLoaded', function () {
+                sendHeartbeat(); // Initial heartbeat
+                setInterval(sendHeartbeat, 10000); // Then every 10 seconds
+            });
+
+            // Kick player function (host only)
+            async function kickPlayer(playerId) {
+                if (!confirm('هل تريد طرد هذا اللاعب؟')) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/room/${roomCode}/kick/${playerId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+                    const data = await response.json();
+                    if (!data.success) {
+                        alert(data.message || 'حدث خطأ');
+                    }
+                } catch (error) {
+                    console.log('Kick error:', error);
+                    alert('حدث خطأ أثناء طرد اللاعب');
+                }
+            }
+
+            // Update players list UI
+            function updatePlayersUI(players, playerCount, readyCount, waitingCount, action = null) {
+                // Check if current player is now host
+                const currentPlayer = players.find(p => p.id === currentPlayerId);
+                const wasHost = isHost;
+                if (currentPlayer) {
+                    isHost = currentPlayer.is_host;
+                }
+
+                // If we just became host, reload the page to show host controls
+                if (!wasHost && isHost) {
+                    window.location.reload();
+                    return;
+                }
+
+                // Update player chips
+                const playersContainer = document.querySelector('.d-flex.flex-wrap.gap-2');
+                if (playersContainer) {
+                    let html = '';
+                    players.forEach(p => {
+                        const isYou = p.id === currentPlayerId;
+                        const statusClass = p.status === 'ready' ? 'ready' : 'waiting';
+                        const youClass = isYou ? 'is-you' : '';
+                        const onlineClass = p.is_online !== false ? 'online' : 'offline';
+                        const showKickBtn = isHost && !isYou && !p.is_host;
+                        html += `
+                                                                            <div class="player-chip ${statusClass} ${youClass}" data-player-id="${p.id}">
+                                                                                <span class="online-indicator ${onlineClass}"></span>
+                                                                                <span class="avatar">${p.name.charAt(0)}</span>
+                                                                                <span class="name">${p.name}</span>
+                                                                                ${p.is_host ? '<i class="bi bi-star-fill text-warning"></i>' : ''}
+                                                                                ${p.status === 'ready' ? '<i class="bi bi-check-circle-fill text-success"></i>' : ''}
+                                                                                ${showKickBtn ? `<button type="button" class="kick-btn" onclick="kickPlayer(${p.id})" title="طرد اللاعب"><i class="bi bi-x-lg"></i></button>` : ''}
+                                                                            </div>
+                                                                        `;
+                    });
+                    playersContainer.innerHTML = html;
+                }
+
+                // Update header counts
+                const headerTitle = document.querySelector('.game-card-header .fw-bold');
+                if (headerTitle) {
+                    headerTitle.innerHTML = `<i class="bi bi-people-fill me-1"></i> اللاعبون (${playerCount})`;
+                }
+
+                const headerCounts = document.querySelector('.game-card-header .small');
+                if (headerCounts) {
+                    headerCounts.innerHTML = `
+                                                                        <span class="text-success">${readyCount} جاهز</span>
+                                                                        /
+                                                                        <span class="text-muted">${waitingCount} ينتظر</span>
+                                                                    `;
+                }
+
+                // Update minimum players message
+                const cardBody = document.querySelector('.game-card-body.py-2');
+                let minMsg = document.querySelector('.game-card-body .text-center.text-muted-custom.small.mt-2');
+
+                if (playerCount < minPlayers) {
+                    if (!minMsg && cardBody) {
+                        cardBody.insertAdjacentHTML('beforeend', `
+                                                                            <div class="text-center text-muted-custom small mt-2">
+                                                                                <i class="bi bi-info-circle"></i> يلزم ${minPlayers} لاعبين على الأقل
+                                                                            </div>
+                                                                        `);
+                    }
+                } else if (minMsg) {
+                    minMsg.remove();
+                }
+
+                // Update Start Game button state (for host)
+                if (isHost) {
+                    const startBtn = document.getElementById('startGameBtn');
+                    const hostMessage = document.getElementById('hostMessage');
+
+                    if (startBtn) {
+                        startBtn.disabled = readyCount < minPlayers;
+                    }
+                    if (hostMessage) {
+                        hostMessage.style.display = readyCount < minPlayers ? 'block' : 'none';
+                    }
+                }
+            }
+
+            // WebSocket connection with Echo
+            document.addEventListener('DOMContentLoaded', function () {
+                if (typeof window.Echo !== 'undefined') {
+                    console.log('Connecting to WebSocket channel: room.' + roomCode);
+
+                    window.Echo.channel('room.' + roomCode)
+                        .listen('.player.updated', (e) => {
+                            console.log('Player updated:', e);
+                            // Check if current player was removed (not in player list)
+                            const currentPlayerInList = e.players.find(p => p.id === currentPlayerId);
+                            if (!currentPlayerInList) {
+                                // Player was removed - redirect to landing
+                                window.location.href = '{{ route("game.landing") }}';
+                                return;
+                            }
+                            updatePlayersUI(e.players, e.player_count, e.ready_count, e.waiting_count, e.action);
+                        })
+                        .listen('.game.state.updated', (e) => {
+                            console.log('Game state updated:', e);
+                            if (e.type === 'game_started') {
+                                window.location.href = playUrl;
+                            }
+                            if (e.type === 'room_deleted') {
+                                window.location.href = '{{ route("game.landing") }}';
+                            }
+                        });
+                } else {
+                    console.log('Echo not available, falling back to polling');
+                    // Fallback to polling if Echo is not available
+                    setInterval(checkForUpdates, 2000);
+                }
+            });
+
+            // Fallback polling (only used if WebSocket fails)
+            async function checkForUpdates() {
+                try {
+                    const response = await fetch(window.location.href, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+
+                    if (response.url.includes('/play')) {
+                        window.location.href = response.url;
+                        return;
+                    }
+
+                    const html = await response.text();
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+
+                    const newPlayersList = doc.querySelector('.d-flex.flex-wrap.gap-2');
+                    const currentPlayersList = document.querySelector('.d-flex.flex-wrap.gap-2');
+                    if (newPlayersList && currentPlayersList) {
+                        currentPlayersList.innerHTML = newPlayersList.innerHTML;
+                    }
+
+                    const newCounts = doc.querySelector('.game-card-header .small');
+                    const currentCounts = document.querySelector('.game-card-header .small');
+                    if (newCounts && currentCounts) {
+                        currentCounts.innerHTML = newCounts.innerHTML;
+                    }
+
+                    const newTitle = doc.querySelector('.game-card-header .fw-bold');
+                    const currentTitle = document.querySelector('.game-card-header .fw-bold');
+                    if (newTitle && currentTitle) {
+                        currentTitle.innerHTML = newTitle.innerHTML;
+                    }
+
+                    if (isHost) {
+                        const newStartBtn = doc.getElementById('startGameBtn');
+                        const currentStartBtn = document.getElementById('startGameBtn');
+                        const hostMessage = document.getElementById('hostMessage');
+
+                        if (newStartBtn && currentStartBtn) {
+                            currentStartBtn.disabled = newStartBtn.disabled;
+                            if (hostMessage) {
+                                hostMessage.style.display = newStartBtn.disabled ? 'block' : 'none';
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.log('Polling error:', error);
+                }
+            }
+        </script>
+    @endpush

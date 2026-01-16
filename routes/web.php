@@ -33,6 +33,7 @@ Route::get('/room/{code}', [GameController::class, 'lobby'])->name('game.lobby')
 Route::post('/room/{code}/ready', [GameController::class, 'toggleReady'])->name('game.ready');
 Route::post('/room/{code}/start', [GameController::class, 'startGame'])->name('game.start');
 Route::post('/room/{code}/leave', [GameController::class, 'leaveRoom'])->name('game.leave');
+Route::post('/room/{code}/change-name', [GameController::class, 'changeFakeName'])->name('game.changeName');
 
 // Gameplay
 Route::get('/room/{code}/play', [GameController::class, 'play'])->name('game.play');

@@ -334,30 +334,34 @@
 @push('scripts')
     <script>
         const SAVED_QUESTIONS_KEY = 'mulatham_saved_questions';
+        const currentRoomCode = '{{ $room->code }}';
 
-        // Save unused questions to localStorage on page load
+        // Save unused questions to localStorage on page load (with room code)
         document.addEventListener('DOMContentLoaded', function () {
             const unusedQuestions = @json($unusedQuestions);
 
             if (unusedQuestions && unusedQuestions.length > 0) {
-                // Save questions without the id (since it won't be valid in a new room)
-                const questionsToSave = unusedQuestions.map(q => ({
-                    question_text: q.question_text,
-                    question_type: q.question_type,
-                    choices: q.choices,
-                    correct_choice_index: q.correct_choice_index,
-                    correct_answer: q.correct_answer
-                }));
+                // Save questions with room code (so they only import in the same room)
+                const dataToSave = {
+                    roomCode: currentRoomCode,
+                    questions: unusedQuestions.map(q => ({
+                        question_text: q.question_text,
+                        question_type: q.question_type,
+                        choices: q.choices,
+                        correct_choice_index: q.correct_choice_index,
+                        correct_answer: q.correct_answer
+                    }))
+                };
 
-                localStorage.setItem(SAVED_QUESTIONS_KEY, JSON.stringify(questionsToSave));
-                console.log('Saved', questionsToSave.length, 'questions to localStorage');
+                localStorage.setItem(SAVED_QUESTIONS_KEY, JSON.stringify(dataToSave));
+                console.log('Saved', dataToSave.questions.length, 'questions for room', currentRoomCode);
             }
 
             // Listen for game restart from another player
             if (typeof Echo !== 'undefined') {
                 Echo.channel('room.{{ $room->code }}')
-                    .listen('.game.state-updated', (e) => {
-                        if (e.action === 'game_restarted' && e.data && e.data.redirect_url) {
+                    .listen('.game.state.updated', (e) => {
+                        if (e.type === 'game_restarted' && e.data && e.data.redirect_url) {
                             console.log('Game is restarting, redirecting to lobby...');
                             window.location.href = e.data.redirect_url;
                         }
