@@ -14,6 +14,9 @@ class Kernel extends ConsoleKernel
     {
         // Send daily Telegram report at 11 PM (Saudi time is UTC+3)
         $schedule->command('telegram:daily-report')->dailyAt('23:00')->timezone('Asia/Riyadh');
+
+        // Cleanup idle rooms every hour
+        $schedule->command('rooms:cleanup-idle')->hourly();
     }
 
     /**
