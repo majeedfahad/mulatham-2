@@ -261,7 +261,7 @@
 
         <!-- Footer -->
         <div class="text-center mt-5 text-muted-custom">
-            <small>صُنع بـ <i class="bi bi-heart-fill text-danger-custom"></i> للسهرات الممتعة</small>
+            <small>صُنع بـ <i class="bi bi-heart-fill text-danger-custom"></i></small>
         </div>
     </div>
 @endsection
