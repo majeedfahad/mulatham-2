@@ -1,16 +1,18 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>@yield('title', 'ملثم') - لعبة الهوية الغامضة</title>
+    <title>@yield('title', 'ملثم') - يا قافط .. يا مقفوط</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
 
     <!-- Bootstrap RTL -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
@@ -98,8 +100,15 @@
         }
 
         @keyframes twinkle {
-            0%, 100% { opacity: 0.6; }
-            50% { opacity: 0.3; }
+
+            0%,
+            100% {
+                opacity: 0.6;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
         }
 
         #app {
@@ -108,10 +117,21 @@
         }
 
         /* Typography */
-        .text-primary-custom { color: var(--color-primary) !important; }
-        .text-muted-custom { color: var(--color-text-muted) !important; }
-        .text-success-custom { color: var(--color-success) !important; }
-        .text-danger-custom { color: var(--color-danger) !important; }
+        .text-primary-custom {
+            color: var(--color-primary) !important;
+        }
+
+        .text-muted-custom {
+            color: var(--color-text-muted) !important;
+        }
+
+        .text-success-custom {
+            color: var(--color-success) !important;
+        }
+
+        .text-danger-custom {
+            color: var(--color-danger) !important;
+        }
 
         /* Buttons */
         .btn-game {
@@ -479,6 +499,7 @@
                 opacity: 0;
                 transform: translateY(20px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -486,14 +507,31 @@
         }
 
         @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
         }
 
         @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-5px);
+            }
+
+            75% {
+                transform: translateX(5px);
+            }
         }
 
         .animate-fade-in {
@@ -575,17 +613,40 @@
 
         /* Responsive */
         @media (max-width: 768px) {
-            .game-title { font-size: 2rem; }
-            .room-code { font-size: 1.75rem; padding: 12px 24px; }
-            .question-display .question-text { font-size: 1.25rem; }
-            .btn-game { padding: 10px 20px; }
-            .btn-game-lg { padding: 12px 24px; }
+            .game-title {
+                font-size: 2rem;
+            }
+
+            .room-code {
+                font-size: 1.75rem;
+                padding: 12px 24px;
+            }
+
+            .question-display .question-text {
+                font-size: 1.25rem;
+            }
+
+            .btn-game {
+                padding: 10px 20px;
+            }
+
+            .btn-game-lg {
+                padding: 12px 24px;
+            }
         }
 
         /* Utilities */
-        .gap-2 { gap: 0.5rem; }
-        .gap-3 { gap: 1rem; }
-        .gap-4 { gap: 1.5rem; }
+        .gap-2 {
+            gap: 0.5rem;
+        }
+
+        .gap-3 {
+            gap: 1rem;
+        }
+
+        .gap-4 {
+            gap: 1.5rem;
+        }
 
         /* Player Chips (compact lobby) */
         .player-chip {
@@ -639,6 +700,7 @@
         }
     </style>
 </head>
+
 <body>
     <div id="app" class="min-vh-100 d-flex flex-column">
         @yield('content')
@@ -652,12 +714,13 @@
 
     <!-- PostHog Analytics -->
     @if(config('posthog.enabled') && config('posthog.api_key'))
-    <script>
-        !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.async=!0,p.src=s.api_host+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys onSessionId".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
-        posthog.init('{{ config('posthog.api_key') }}', {api_host: '{{ config('posthog.host') }}'});
-    </script>
+        <script>
+            !function (t, e) { var o, n, p, r; e.__SV || (window.posthog = e, e._i = [], e.init = function (i, s, a) { function g(t, e) { var o = e.split("."); 2 == o.length && (t = t[o[0]], e = o[1]), t[e] = function () { t.push([e].concat(Array.prototype.slice.call(arguments, 0))) } } (p = t.createElement("script")).type = "text/javascript", p.async = !0, p.src = s.api_host + "/static/array.js", (r = t.getElementsByTagName("script")[0]).parentNode.insertBefore(p, r); var u = e; for (void 0 !== a ? u = e[a] = [] : a = "posthog", u.people = u.people || [], u.toString = function (t) { var e = "posthog"; return "posthog" !== a && (e += "." + a), t || (e += " (stub)"), e }, u.people.toString = function () { return u.toString(1) + ".people (stub)" }, o = "capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys onSessionId".split(" "), n = 0; n < o.length; n++)g(u, o[n]); e._i.push([i, s, a]) }, e.__SV = 1) }(document, window.posthog || []);
+            posthog.init('{{ config('posthog.api_key') }}', { api_host: '{{ config('posthog.host') }}' });
+        </script>
     @endif
 
     @stack('scripts')
 </body>
+
 </html>

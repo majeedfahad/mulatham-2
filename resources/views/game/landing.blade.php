@@ -9,7 +9,7 @@
             <img src="{{ asset('imgs/logo-nightsky.svg') }}" alt="ملثم" class="game-logo mb-3"
                 style="width: 140px; height: 140px;">
             <h1 class="game-title mb-2">ملثم</h1>
-            <p class="game-subtitle mb-0">لعبة الهوية الغامضة</p>
+            <p class="game-subtitle mb-0">يا قافط .. يا مقفوط</p>
         </div>
 
         <!-- Error Messages -->
